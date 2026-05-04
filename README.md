@@ -1,9 +1,12 @@
-# Compile Hyrpland on Fedora
-This repo contains a script to automatize the compilation of Hyprland on Fedora
-## Requirements
-Before starting the script, it is needed to remove the actual installation of lua from the system and build it from source because Hyrpland 0.50> will require lua 5.5
+`# Compile Hyprland on Fedora
 
-To do so follow this steps:
+This repository contains a script to automate the compilation of Hyprland on Fedora.
+
+## Requirements
+
+Before starting the script, you must remove the existing installation of Lua from your system and build it from source, because Hyprland 0.50+ requires Lua 5.5.
+
+To do so, follow these steps:
 ```
 sudo dnf install make gcc
 curl -L -R -O https://www.lua.org/ftp/lua-5.5.0.tar.gz
@@ -26,11 +29,14 @@ Libs: -L${libdir} -llua
 Cflags: -I${includedir}
 EOF'
 ```
-Then add "export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-at the bottom of .bashrc
 
-Now you can start the script with ``` lua script.lua```
+Then add the following line at the bottom of ```~/.bashrc```:
+
+```export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"```
+
+Now you can start the script with ```lua script.lua```
 
 ## Script description
-The script will ask if you want to compile the git version or the latest relese.
-The script will ask if you want to install Hyprland on the system or create a folder were to save all the files to install it later on another machine. If you chose git before, the folder name will be ```hyprland_git```, else```hyprland_relese``` 
+The script will ask whether you want to compile the Git version or the latest release.
+
+It will also ask whether you want to install Hyprland on the system, or create a folder where all the files will be saved so you can install it later on another machine. If you chose the Git version, the folder name will be ```hyprland_git```; otherwise, it will be ```hyprland_release```.
