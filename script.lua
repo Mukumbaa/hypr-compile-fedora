@@ -221,3 +221,98 @@ if is_distro then
     print("Files are ready in: " .. destdir)
 end
 print("============================================================\n")
+
+
+
+
+
+-- safety filter: only allow Hyprland-related files
+local function is_safe_to_remove(path)
+    local allowed_patterns = {
+        "^/usr/bin/hypr",
+        "^/usr/lib.*hypr",
+        "^/usr/share/hypr",
+        "^/usr/share/xdg-desktop-portal%-hyprland",
+        "^/usr/lib/xdg-desktop-portal%-hyprland"
+    }
+
+    for _, pattern in ipairs(allowed_patterns) do
+        if path:match(pattern) then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- deduplicate + filter
+local seen = {}
+local safe_files = {}
+
+for _, file in ipairs(Installed_files) do
+    if file and not seen[file] then
+        seen[file] = true
+        if is_safe_to_remove(file) then
+            table.insert(safe_files, file)
+        else
+            print("[skip unsafe] " .. file)
+        end
+    end
+end
+
+Installed_files = safe_files
+
+-- create uninstall script
+local uninstall_path = destdir .. "/uninstall.sh"
+local f,errf = io.open(uninstall_path, "w")
+
+if not f then
+    print("[!] Failed to create uninstall script: " .. tostring(errf))
+    os.exit(1)
+end
+
+f:write("#!/bin/bash\n\n")
+f:write("echo \"==================================================\"\n")
+f:write("echo \"Hyprland uninstall script\"\n")
+f:write("echo \"==================================================\"\n\n")
+
+f:write("echo \"The following files will be removed:\"\n")
+for _, file in ipairs(Installed_files) do
+    f:write("echo \"" .. file .. "\"\n")
+end
+
+f:write("\nread -p \"Continue uninstall? (yes/no): \" ans\n")
+f:write("if [ \"$ans\" != \"yes\" ]; then\n")
+f:write("  echo \"Aborted.\"\n")
+f:write("  exit 1\n")
+f:write("fi\n\n")
+
+f:write("echo \"Removing files...\"\n\n")
+
+for _, file in ipairs(Installed_files) do
+    f:write("sudo rm -f \"" .. file .. "\"\n")
+end
+
+f:write("\n# Cleanup empty directories (safe-ish)\n")
+f:write("sudo find /usr -type d -empty -delete 2>/dev/null\n\n")
+
+f:write("echo \"Done.\"\n")
+
+f:close()
+
+os.execute("chmod +x " .. uninstall_path)
+
+-- also write log file
+local log,errlog = io.open(destdir .. "/installed_files.txt", "w")
+
+if not log then
+    print("[!] Failed to create log file: " .. tostring(errlog))
+    os.exit(1)
+end
+
+for _, file in ipairs(Installed_files) do
+    log:write(file .. "\n")
+end
+log:close()
+
+print("\n-> Uninstall script created at: " .. uninstall_path)
