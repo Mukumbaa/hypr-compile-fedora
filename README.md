@@ -1,4 +1,4 @@
-`# Compile Hyprland on Fedora
+# Compile Hyprland on Fedora
 
 This repository contains a script to automate the compilation of Hyprland on Fedora.
 
