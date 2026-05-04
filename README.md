@@ -32,7 +32,9 @@ EOF'
 
 Then add the following line at the bottom of ```~/.bashrc```:
 
-```export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"```
+```
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+```
 
 Now you can start the script with ```lua script.lua```
 
