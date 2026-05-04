@@ -39,4 +39,4 @@ Now you can start the script with ```lua script.lua```
 ## Script description
 The script will ask whether you want to compile the Git version or the latest release.
 
-It will also ask whether you want to install Hyprland on the system, or create a folder where all the files will be saved so you can install it later on another machine. If you chose the Git version, the folder name will be ```hyprland_git```; otherwise, it will be ```hyprland_release```.
+It will also ask whether you want to install Hyprland on the system, or create a folder where all the files will be saved so you can install it later on another machine. If you chose the Git version, the folder name will be ```hyprland_git```; otherwise, it will be ```hyprland_stable```.
