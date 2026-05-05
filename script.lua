@@ -1,54 +1,74 @@
 -- Set up questions
 print("============================================================")
-print("                 SCRIPT TO COMPILE HYPRLAND")
+print("       SCRIPT TO COMPILE & PACKAGE HYPRLAND (RPM)    ")
 print("============================================================\n")
 
--- Dir Q
-io.write("1. Do you want to install on system [s] or create a folder to distribute [d]? (s/d) [default: s]: ")
-local ans_dest = io.read("*l"):lower()
-local is_distro = (ans_dest == "d")
+print("This script will compile selected modules into individual staging directories")
+print("and package them into native Fedora .rpm files sequentially.\n")
 
--- git or relese Q
-io.write("\n2. Do you want to compile -git [g] or relese [r]? (g/r)[default: g]: ")
-local ans_ver = io.read("*l"):lower()
-local is_release = (ans_ver == "r")
+local checkout_cmd = "echo '-> Compiling latest git commit'"
+print("-> Target: Last git commit (master/main)")
+
+-- Unified table containing EVERY package in the correct dependency order
+local all_modules = {
+    {url="https://github.com/hyprwm/hyprwayland-scanner.git", dir="hyprwayland-scanner"},
+    {url="https://github.com/hyprwm/hyprutils.git", dir="hyprutils"},
+    {url="https://github.com/hyprwm/hyprlang.git", dir="hyprlang"},
+    {url="https://github.com/hyprwm/hyprcursor.git", dir="hyprcursor"},
+    {url="https://github.com/hyprwm/hyprgraphics.git", dir="hyprgraphics"},
+    {url="https://github.com/hyprwm/aquamarine.git", dir="aquamarine"},
+    {url="https://github.com/hyprwm/hyprwire.git", dir="hyprwire"},
+    {url="https://github.com/hyprwm/hyprtoolkit.git", dir="hyprtoolkit"},
+    {url="https://github.com/hyprwm/hyprland-guiutils.git", dir="hyprland-guiutils"},
+    {url="https://github.com/hyprwm/hyprland-protocols.git", dir="hyprland-protocols"},
+    {url="https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir="xdg-desktop-portal-hyprland"},
+    {url="https://github.com/hyprwm/Hyprland.git", dir="Hyprland"},
+    {url="https://github.com/hyprwm/hyprpaper.git", dir="hyprpaper"},
+    {url="https://github.com/hyprwm/hyprlock.git", dir="hyprlock"},
+    {
+        url="https://github.com/Vladimir-csp/uwsm.git", 
+        dir="uwsm", 
+        extra_args="-Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled -Dttyautolock=enabled"
+    }
+}
 
 print("\n============================================================")
-
-local destdir = ""
-local cmake_install_cmd = ""
-local meson_install_cmd = ""
-local checkout_cmd = ""
-
--- version logic
-if is_release then
-    checkout_cmd = "git checkout $(git describe --tags $(git rev-list --tags --max-count=1))"
-    print("-> Version: last relese (Stable)")
-else
-    print("-> Version: last git commit (master/main)")
+print("PACKAGE SELECTION MENU")
+print("============================================================")
+for i, mod in ipairs(all_modules) do
+    print(string.format(" %2d) %s", i, mod.dir))
 end
+print("  0) ALL PACKAGES (Default)")
+print("============================================================")
 
--- dir logic
-if is_distro then
-    local home = os.getenv("HOME")
-    local folder_name = "hyprland_git"
-    if is_release then
-        folder_name = "hyprland_stable"
+io.write("Enter numbers separated by commas (e.g., 12,13,14) or 0 for ALL [0]: ")
+local ans_pkgs = io.read("*l")
+
+local modules_to_compile = {}
+
+-- Parse user input
+if ans_pkgs == "" or ans_pkgs:match("0") or ans_pkgs:lower():match("all") then
+    modules_to_compile = all_modules
+    print("\n-> Selected: ALL PACKAGES")
+else
+    print("\n-> Selected:")
+    -- Extract all numbers from the input string
+    for num_str in ans_pkgs:gmatch("%d+") do
+        local idx = tonumber(num_str)
+        if idx and all_modules[idx] then
+            table.insert(modules_to_compile, all_modules[idx])
+            print("   - " .. all_modules[idx].dir)
+        end
     end
-    destdir = home .. "/" .. folder_name
-
-    -- use DESTDIR without sudo
-    os.execute("mkdir -p " .. destdir)
-    cmake_install_cmd = string.format("DESTDIR=%s cmake --install", destdir)
-    meson_install_cmd = string.format("DESTDIR=%s meson install", destdir)
-    print("-> Dir: (" .. destdir .. ")")
-else
-    cmake_install_cmd = "sudo cmake --install"
-    meson_install_cmd = "sudo meson install"
-    print("-> Install on system (sudo required)")
+    
+    -- Fallback if they typed something invalid
+    if #modules_to_compile == 0 then
+        print("[!] No valid numbers detected. Defaulting to ALL PACKAGES.")
+        modules_to_compile = all_modules
+    end
 end
 
-print("============================================================\n")
+print("\n============================================================")
 os.execute("sleep 2")
 
 local function run(cmd)
@@ -69,250 +89,140 @@ local function run(cmd)
     end
 end
 
+-- Function to dynamically get the exact version from Git for the RPM
+local function get_pkg_version(folder)
+    local handle = io.popen(string.format("cd %s && git describe --tags --always 2>/dev/null", folder))
+    local ver = handle:read("*a")
+    handle:close()
+    
+    -- Clean up string
+    ver = ver:gsub("\n", "")
+    ver = ver:gsub("^v", "") -- Remove leading 'v' (v0.41.0 -> 0.41.0)
+    ver = ver:gsub("-", ".") -- RPM versions CANNOT contain hyphens
+    
+    if ver == "" then ver = "0.0.0.unknown" end
+    
+    -- RPM versions must ideally start with a number. If it's just a raw hash, prepend 0.0.0.
+    if not ver:match("^%d") then
+        ver = "0.0.0." .. ver
+    end
+    
+    return ver
+end
+
 -- system update
 print("--> System update...")
 run("sudo dnf upgrade --refresh -y")
 
 local dnf_packages = {
-    "git",
-    "meson",
-    "cmake",
-    "ninja-build",
-    "gcc-c++",
-    "pkgconfig",
-    "wayland-devel",
-    "wayland-protocols-devel",
-    "pango-devel",
-    "cairo-devel",
-    "file-devel",
-    "libglvnd-devel",
-    "libglvnd-core-devel",
-    "libjpeg-turbo-devel",
-    "libwebp-devel",
-    "libinput-devel",
-    "libxkbcommon-devel",
-    "libdrm-devel",
-    "mesa-libGLES-devel",
-    "libseat-devel",
-    "libliftoff-devel",
-    "libdisplay-info-devel",
-    "tomlplusplus-devel",
-    "re2-devel",
-    "muParser-devel",
-    "libxcb-devel",
-    "libX11-devel",
-    "pixman-devel",
-    "gdb",
-    "xcb-util-devel",
-    "xcb-util-keysyms-devel",
-    "xcb-util-wm-devel",
-    "xcb-util-errors-devel",
-    "glslang-devel",
-    "vulkan-devel",
-    "egl-wayland-devel",
-    "pugixml",
-    "pugixml-devel",
-    "libzip-devel",
-    "librsvg2-devel",
-    "mesa-libgbm-devel",
-    "hwdata",
-    "hwdata-devel",
-    "uuid",
-    "uuid-devel",
-    "libuuid-devel",
-    "libXcursor-devel",
-    "iniparser",
-    "iniparser-devel",
-    "qt6-qtbase-devel",
-    "qt6-qtwayland-devel",
-    "pipewire-devel",
-    "pipewire",
-    "pipewire-libs",
-    "pkgconf-pkg-config",
-    "sdbus-cpp-devel",
-    "systemd-devel",
-    "dbus-devel",
-    "pam-devel",
-    "scdoc"
+  "git", "meson", "cmake", "ninja-build", "gcc-c++", "pkgconfig",
+  "wayland-devel", "wayland-protocols-devel", "pango-devel",
+  "cairo-devel", "file-devel", "libglvnd-devel", "libglvnd-core-devel",
+  "libjpeg-turbo-devel", "libwebp-devel", "libinput-devel",
+  "libxkbcommon-devel", "libdrm-devel", "mesa-libGLES-devel",
+  "libseat-devel", "libliftoff-devel", "libdisplay-info-devel",
+  "tomlplusplus-devel", "re2-devel", "muParser-devel", "libxcb-devel",
+  "libX11-devel", "pixman-devel", "gdb", "xcb-util-devel",
+  "xcb-util-keysyms-devel", "xcb-util-wm-devel", "xcb-util-errors-devel",
+  "glslang-devel", "vulkan-devel", "egl-wayland-devel", "pugixml",
+  "pugixml-devel", "libzip-devel", "librsvg2-devel", "mesa-libgbm-devel",
+  "hwdata", "hwdata-devel", "uuid", "uuid-devel", "libuuid-devel",
+  "libXcursor-devel", "iniparser", "iniparser-devel", "qt6-qtbase-devel",
+  "qt6-qtwayland-devel", "pipewire-devel", "pipewire", "pipewire-libs",
+  "pkgconf-pkg-config", "sdbus-cpp-devel", "systemd-devel", "dbus-devel",
+  "pam-devel", "scdoc",
+
+  -- FPM & Python requirements
+  "ruby", "ruby-devel", "rpm-build", "python3"
 }
 
 print("--> Installing dependencies...")
 run("sudo dnf install -y " .. table.concat(dnf_packages, " "))
 
-local function build_hypr_module(repo_url, folder_name)
-    print("--> Compiling: " .. folder_name)
-    local cmd = string.format([[
+print("--> Installing FPM (RubyGem for Packaging)...")
+run("sudo gem install fpm --no-document")
+
+-- We keep a table to track all the RPMs we generate
+local generated_rpms = {}
+
+local function build_and_package_module(repo_url, folder_name, extra_args)
+    print("\n============================================================")
+    print("--> Compiling & Packaging: " .. folder_name)
+    print("============================================================")
+    
+    local module_build_root = os.getenv("HOME") .. "/build_root_" .. folder_name
+    local args = extra_args or ""
+    os.execute("rm -rf " .. module_build_root)
+    os.execute("mkdir -p " .. module_build_root)
+
+    -- 1. Clone & Checkout
+    local clone_cmd = string.format([[
         rm -rf %s
-        git clone %s
+        git clone --recursive %s
         cd %s
         %s
-        cmake -DCMAKE_INSTALL_PREFIX=/usr -B build
-        cmake --build build -j$(nproc)
-        %s build
-    ]], folder_name, repo_url, folder_name, checkout_cmd, cmake_install_cmd)
-    run(cmd)
+    ]], folder_name, repo_url, folder_name, checkout_cmd)
+    run(clone_cmd)
+
+    -- 2. Get dynamic version of the cloned repo
+    local module_version = get_pkg_version(folder_name)
+    print("--> Detected Package Version: " .. module_version)
+
+    -- 3. SMART Auto-Detect Compile & Install to Staging Root
+    local build_cmd = string.format([[
+        cd %s
+        if [ -f "CMakeLists.txt" ]; then
+            echo "-> CMake build system detected"
+            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release %s -B build
+            cmake --build build -j$(nproc)
+            DESTDIR=%s cmake --install build
+        elif [ -f "meson.build" ]; then
+            echo "-> Meson build system detected"
+            meson setup --prefix=/usr %s build
+            DESTDIR=%s meson install -C build
+        else
+            echo "Error: Neither CMakeLists.txt nor meson.build found in %s!"
+            exit 1
+        fi
+    ]], folder_name, args, module_build_root, args, module_build_root, folder_name)
+    run(build_cmd)
+
+    -- 4. Package into RPM using FPM and the dynamic version
+    local rpm_name = folder_name:lower()
+    local fpm_cmd = string.format([[
+        fpm -s dir -t rpm -n %s -v %s \
+        --provides %s \
+        --conflicts %s \
+        -C %s \
+        --force \
+        .
+    ]], rpm_name, module_version, rpm_name, rpm_name, module_build_root)
+    run(fpm_cmd)
+    
+    -- RPMs generated by FPM end with -1.x86_64.rpm
+    local rpm_file = string.format("%s-%s-1.x86_64.rpm", rpm_name, module_version)
+    table.insert(generated_rpms, rpm_file)
+
+    -- 5. Install the newly created RPM immediately so the next modules can use it as a dependency
+    print("--> Installing " .. rpm_name .. " via DNF to satisfy future dependencies...")
+    run("sudo dnf install -y ./" .. rpm_file)
+
+    -- 6. Cleanup staging root
+    os.execute("rm -rf " .. module_build_root)
 end
 
-local hypr_modules = {
-    {url="https://github.com/hyprwm/hyprwayland-scanner.git", dir="hyprwayland-scanner"},
-    {url="https://github.com/hyprwm/hyprutils.git", dir="hyprutils"},
-    {url="https://github.com/hyprwm/hyprlang.git", dir="hyprlang"},
-    {url="https://github.com/hyprwm/hyprcursor.git", dir="hyprcursor"},
-    {url="https://github.com/hyprwm/hyprgraphics.git", dir="hyprgraphics"},
-    {url="https://github.com/hyprwm/aquamarine.git", dir="aquamarine"},
-    {url="https://github.com/hyprwm/hyprwire.git", dir="hyprwire"},
-    {url="https://github.com/hyprwm/hyprtoolkit.git", dir="hyprtoolkit"},
-    {url="https://github.com/hyprwm/hyprland-guiutils.git", dir="hyprland-guiutils"},
-    {url="https://github.com/hyprwm/hyprland-protocols", dir="hyprland-protocols"},
-    {url="https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir="xdg-desktop-portal-hyprland"}
-}
-
-for _, module in ipairs(hypr_modules) do
-    build_hypr_module(module.url, module.dir)
+-- Execute the build loop ONLY for the selected modules
+for _, module in ipairs(modules_to_compile) do
+    build_and_package_module(module.url, module.dir, module.extra_args)
 end
-
-
-print("--> Compiling: Hyprland")
-run(string.format([[
-    rm -rf Hyprland
-    git clone --recursive https://github.com/hyprwm/Hyprland
-    cd Hyprland
-    %s
-    cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -B build
-    cmake --build ./build --config Release --target all -j$(nproc)
-    %s ./build
-]], checkout_cmd, cmake_install_cmd))
-
-print("--> Compiling: hyprpaper")
-run(string.format([[
-    rm -rf hyprpaper
-    git clone https://github.com/hyprwm/hyprpaper.git
-    cd hyprpaper
-    %s
-    cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
-    cmake --build ./build --config Release --target hyprpaper -j$(nproc 2>/dev/null || getconf _NPROCESSORS_CONF)
-    %s ./build
-]], checkout_cmd, cmake_install_cmd))
-
-print("--> Compiling: hyprlock")
-run(string.format([[
-    rm -rf hyprlock
-    git clone https://github.com/hyprwm/hyprlock.git
-    cd hyprlock
-    %s
-    cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build
-    cmake --build ./build --config Release --target hyprlock -j$(nproc 2>/dev/null || getconf _NPROCESSORS_CONF)
-    %s ./build
-]], checkout_cmd, cmake_install_cmd))
-
-print("--> Compiling: uwsm")
-run(string.format([[
-    rm -rf uwsm
-    git clone https://github.com/Vladimir-csp/uwsm.git
-    cd uwsm
-    %s
-    meson setup --prefix=/usr/local -Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled -Dttyautolock=enabled build
-    %s -C build
-]], checkout_cmd, meson_install_cmd))
 
 print("\n============================================================")
-print("COMPLETED")
-if is_distro then
-    print("Files are ready in: " .. destdir)
+print("SUCCESS! ALL REQUESTED RPMS GENERATED AND INSTALLED.")
+print("============================================================")
+print("The following RPM files are now in your current directory:")
+for _, rpm in ipairs(generated_rpms) do
+    print(" - " .. rpm)
 end
-print("============================================================\n")
-
-
-
-
-
--- safety filter: only allow Hyprland-related files
-local function is_safe_to_remove(path)
-    local allowed_patterns = {
-        "^/usr/bin/hypr",
-        "^/usr/lib.*hypr",
-        "^/usr/share/hypr",
-        "^/usr/share/xdg-desktop-portal%-hyprland",
-        "^/usr/lib/xdg-desktop-portal%-hyprland"
-    }
-
-    for _, pattern in ipairs(allowed_patterns) do
-        if path:match(pattern) then
-            return true
-        end
-    end
-
-    return false
-end
-
--- deduplicate + filter
-local seen = {}
-local safe_files = {}
-
-for _, file in ipairs(Installed_files) do
-    if file and not seen[file] then
-        seen[file] = true
-        if is_safe_to_remove(file) then
-            table.insert(safe_files, file)
-        else
-            print("[skip unsafe] " .. file)
-        end
-    end
-end
-
-Installed_files = safe_files
-
--- create uninstall script
-local uninstall_path = destdir .. "/uninstall.sh"
-local f,errf = io.open(uninstall_path, "w")
-
-if not f then
-    print("[!] Failed to create uninstall script: " .. tostring(errf))
-    os.exit(1)
-end
-
-f:write("#!/bin/bash\n\n")
-f:write("echo \"==================================================\"\n")
-f:write("echo \"Hyprland uninstall script\"\n")
-f:write("echo \"==================================================\"\n\n")
-
-f:write("echo \"The following files will be removed:\"\n")
-for _, file in ipairs(Installed_files) do
-    f:write("echo \"" .. file .. "\"\n")
-end
-
-f:write("\nread -p \"Continue uninstall? (yes/no): \" ans\n")
-f:write("if [ \"$ans\" != \"yes\" ]; then\n")
-f:write("  echo \"Aborted.\"\n")
-f:write("  exit 1\n")
-f:write("fi\n\n")
-
-f:write("echo \"Removing files...\"\n\n")
-
-for _, file in ipairs(Installed_files) do
-    f:write("sudo rm -f \"" .. file .. "\"\n")
-end
-
-f:write("\n# Cleanup empty directories (safe-ish)\n")
-f:write("sudo find /usr -type d -empty -delete 2>/dev/null\n\n")
-
-f:write("echo \"Done.\"\n")
-
-f:close()
-
-os.execute("chmod +x " .. uninstall_path)
-
--- also write log file
-local log,errlog = io.open(destdir .. "/installed_files.txt", "w")
-
-if not log then
-    print("[!] Failed to create log file: " .. tostring(errlog))
-    os.exit(1)
-end
-
-for _, file in ipairs(Installed_files) do
-    log:write(file .. "\n")
-end
-log:close()
-
-print("\n-> Uninstall script created at: " .. uninstall_path)
+print("\nYou can back these up or move them to a dedicated folder.")
+print("To uninstall them in the future, just run:")
+print("sudo dnf remove hyprland hyprutils aquamarine ...etc")
