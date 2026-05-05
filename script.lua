@@ -11,33 +11,33 @@ print("-> Target: Last git commit (master/main)")
 
 -- Unified table containing EVERY package in the correct dependency order
 local all_modules = {
-    {url="https://github.com/hyprwm/hyprwayland-scanner.git", dir="hyprwayland-scanner"},
-    {url="https://github.com/hyprwm/hyprutils.git", dir="hyprutils"},
-    {url="https://github.com/hyprwm/hyprlang.git", dir="hyprlang"},
-    {url="https://github.com/hyprwm/hyprcursor.git", dir="hyprcursor"},
-    {url="https://github.com/hyprwm/hyprgraphics.git", dir="hyprgraphics"},
-    {url="https://github.com/hyprwm/aquamarine.git", dir="aquamarine"},
-    {url="https://github.com/hyprwm/hyprwire.git", dir="hyprwire"},
-    {url="https://github.com/hyprwm/hyprtoolkit.git", dir="hyprtoolkit"},
-    {url="https://github.com/hyprwm/hyprland-guiutils.git", dir="hyprland-guiutils"},
-    {url="https://github.com/hyprwm/hyprland-protocols.git", dir="hyprland-protocols"},
-    {url="https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir="xdg-desktop-portal-hyprland"},
-    {url="https://github.com/hyprwm/Hyprland.git", dir="Hyprland"},
-    {url="https://github.com/hyprwm/hyprpaper.git", dir="hyprpaper"},
-    {url="https://github.com/hyprwm/hyprlock.git", dir="hyprlock"},
-    {url="https://github.com/hyprwm/hyprpicker.git", dir="hyprpicker"},
-    {
-        url="https://github.com/Vladimir-csp/uwsm.git",
-        dir="uwsm",
-        extra_args="-Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled -Dttyautolock=enabled"
-    }
+  { url = "https://github.com/hyprwm/hyprwayland-scanner.git",         dir = "hyprwayland-scanner" },
+  { url = "https://github.com/hyprwm/hyprutils.git",                   dir = "hyprutils" },
+  { url = "https://github.com/hyprwm/hyprlang.git",                    dir = "hyprlang" },
+  { url = "https://github.com/hyprwm/hyprcursor.git",                  dir = "hyprcursor" },
+  { url = "https://github.com/hyprwm/hyprgraphics.git",                dir = "hyprgraphics" },
+  { url = "https://github.com/hyprwm/aquamarine.git",                  dir = "aquamarine" },
+  { url = "https://github.com/hyprwm/hyprwire.git",                    dir = "hyprwire" },
+  { url = "https://github.com/hyprwm/hyprtoolkit.git",                 dir = "hyprtoolkit" },
+  { url = "https://github.com/hyprwm/hyprland-guiutils.git",           dir = "hyprland-guiutils" },
+  { url = "https://github.com/hyprwm/hyprland-protocols.git",          dir = "hyprland-protocols" },
+  { url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir = "xdg-desktop-portal-hyprland" },
+  { url = "https://github.com/hyprwm/Hyprland.git",                    dir = "Hyprland",                   deps = { "hyprwayland-scanner", "hyprutils", "hyprlang", "hyprcursor", "hyprgraphics", "aquamarine", "hyprwire", "hyprtoolkit", "hyprland-guiutils", "hyprland-protocols", "xdg-desktop-portal-hyprland" } },
+  { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper" },
+  { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock" },
+  { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker" },
+  {
+    url = "https://github.com/Vladimir-csp/uwsm.git",
+    dir = "uwsm",
+    extra_args = "-Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled -Dttyautolock=enabled"
+  }
 }
 
 print("\n============================================================")
 print("PACKAGE SELECTION MENU")
 print("============================================================")
 for i, mod in ipairs(all_modules) do
-    print(string.format(" %2d) %s", i, mod.dir))
+  print(string.format(" %2d) %s", i, mod.dir))
 end
 print("  0) ALL PACKAGES (Default)")
 print("============================================================")
@@ -49,66 +49,66 @@ local modules_to_compile = {}
 
 -- Parse user input
 if ans_pkgs == "" or ans_pkgs:match("0") or ans_pkgs:lower():match("all") then
-    modules_to_compile = all_modules
-    print("\n-> Selected: ALL PACKAGES")
+  modules_to_compile = all_modules
+  print("\n-> Selected: ALL PACKAGES")
 else
-    print("\n-> Selected:")
-    -- Extract all numbers from the input string
-    for num_str in ans_pkgs:gmatch("%d+") do
-        local idx = tonumber(num_str)
-        if idx and all_modules[idx] then
-            table.insert(modules_to_compile, all_modules[idx])
-            print("   - " .. all_modules[idx].dir)
-        end
+  print("\n-> Selected:")
+  -- Extract all numbers from the input string
+  for num_str in ans_pkgs:gmatch("%d+") do
+    local idx = tonumber(num_str)
+    if idx and all_modules[idx] then
+      table.insert(modules_to_compile, all_modules[idx])
+      print("   - " .. all_modules[idx].dir)
     end
+  end
 
-    -- Fallback if they typed something invalid
-    if #modules_to_compile == 0 then
-        print("[!] No valid numbers detected. Defaulting to ALL PACKAGES.")
-        modules_to_compile = all_modules
-    end
+  -- Fallback if they typed something invalid
+  if #modules_to_compile == 0 then
+    print("[!] No valid numbers detected. Defaulting to ALL PACKAGES.")
+    modules_to_compile = all_modules
+  end
 end
 
 print("\n============================================================")
 os.execute("sleep 2")
 
 local function run(cmd)
-    print("\n------------------------------------------------------------")
-    print("Executing: " .. cmd:match("([^\n]+)"))
-    print("------------------------------------------------------------")
+  print("\n------------------------------------------------------------")
+  print("Executing: " .. cmd:match("([^\n]+)"))
+  print("------------------------------------------------------------")
 
-    local success, reason, status = os.execute(cmd)
+  local success, reason, status = os.execute(cmd)
 
-    local failed = false
-    if type(success) == "number" and success ~= 0 then failed = true end
-    if success == nil or success == false then failed = true end
+  local failed = false
+  if type(success) == "number" and success ~= 0 then failed = true end
+  if success == nil or success == false then failed = true end
 
-    if failed then
-        print("\n[!] FATAL ERROR:")
-        print("Command: \n" .. cmd)
-        os.exit(1)
-    end
+  if failed then
+    print("\n[!] FATAL ERROR:")
+    print("Command: \n" .. cmd)
+    os.exit(1)
+  end
 end
 
 -- Function to dynamically get the exact version from Git for the RPM
 local function get_pkg_version(folder)
-    local handle = io.popen(string.format("cd %s && git describe --tags --always 2>/dev/null", folder))
-    local ver = handle:read("*a")
-    handle:close()
+  local handle = io.popen(string.format("cd %s && git describe --tags --always 2>/dev/null", folder))
+  local ver = handle:read("*a")
+  handle:close()
 
-    -- Clean up string
-    ver = ver:gsub("\n", "")
-    ver = ver:gsub("^v", "") -- Remove leading 'v' (v0.41.0 -> 0.41.0)
-    ver = ver:gsub("-", ".") -- RPM versions CANNOT contain hyphens
+  -- Clean up string
+  ver = ver:gsub("\n", "")
+  ver = ver:gsub("^v", "")   -- Remove leading 'v' (v0.41.0 -> 0.41.0)
+  ver = ver:gsub("-", ".")   -- RPM versions CANNOT contain hyphens
 
-    if ver == "" then ver = "0.0.0.unknown" end
+  if ver == "" then ver = "0.0.0.unknown" end
 
-    -- RPM versions must ideally start with a number. If it's just a raw hash, prepend 0.0.0.
-    if not ver:match("^%d") then
-        ver = "0.0.0." .. ver
-    end
+  -- RPM versions must ideally start with a number. If it's just a raw hash, prepend 0.0.0.
+  if not ver:match("^%d") then
+    ver = "0.0.0." .. ver
+  end
 
-    return ver
+  return ver
 end
 
 -- system update
@@ -147,30 +147,30 @@ run("sudo gem install fpm --no-document")
 local generated_rpms = {}
 
 local function build_and_package_module(repo_url, folder_name, extra_args)
-    print("\n============================================================")
-    print("--> Compiling & Packaging: " .. folder_name)
-    print("============================================================")
+  print("\n============================================================")
+  print("--> Compiling & Packaging: " .. folder_name)
+  print("============================================================")
 
-    local module_build_root = os.getenv("HOME") .. "/build_root_" .. folder_name
-    local args = extra_args or ""
-    os.execute("rm -rf " .. module_build_root)
-    os.execute("mkdir -p " .. module_build_root)
+  local module_build_root = os.getenv("HOME") .. "/build_root_" .. folder_name
+  local args = extra_args or ""
+  os.execute("rm -rf " .. module_build_root)
+  os.execute("mkdir -p " .. module_build_root)
 
-    -- 1. Clone & Checkout
-    local clone_cmd = string.format([[
+  -- 1. Clone & Checkout
+  local clone_cmd = string.format([[
         rm -rf %s
         git clone --recursive %s
         cd %s
         %s
     ]], folder_name, repo_url, folder_name, checkout_cmd)
-    run(clone_cmd)
+  run(clone_cmd)
 
-    -- 2. Get dynamic version of the cloned repo
-    local module_version = get_pkg_version(folder_name)
-    print("--> Detected Package Version: " .. module_version)
+  -- 2. Get dynamic version of the cloned repo
+  local module_version = get_pkg_version(folder_name)
+  print("--> Detected Package Version: " .. module_version)
 
-    -- 3. SMART Auto-Detect Compile & Install to Staging Root
-    local build_cmd = string.format([[
+  -- 3. SMART Auto-Detect Compile & Install to Staging Root
+  local build_cmd = string.format([[
         cd %s
         if [ -f "CMakeLists.txt" ]; then
             echo "-> CMake build system detected"
@@ -186,11 +186,11 @@ local function build_and_package_module(repo_url, folder_name, extra_args)
             exit 1
         fi
     ]], folder_name, args, module_build_root, args, module_build_root, folder_name)
-    run(build_cmd)
+  run(build_cmd)
 
-    -- 4. Package into RPM using FPM and the dynamic version
-    local rpm_name = folder_name:lower()
-    local fpm_cmd = string.format([[
+  -- 4. Package into RPM using FPM and the dynamic version
+  local rpm_name = folder_name:lower()
+  local fpm_cmd = string.format([[
         fpm -s dir -t rpm -n %s -v %s \
         --provides %s \
         --conflicts %s \
@@ -198,23 +198,23 @@ local function build_and_package_module(repo_url, folder_name, extra_args)
         --force \
         .
     ]], rpm_name, module_version, rpm_name, rpm_name, module_build_root)
-    run(fpm_cmd)
+  run(fpm_cmd)
 
-    -- RPMs generated by FPM end with -1.x86_64.rpm
-    local rpm_file = string.format("%s-%s-1.x86_64.rpm", rpm_name, module_version)
-    table.insert(generated_rpms, rpm_file)
+  -- RPMs generated by FPM end with -1.x86_64.rpm
+  local rpm_file = string.format("%s-%s-1.x86_64.rpm", rpm_name, module_version)
+  table.insert(generated_rpms, rpm_file)
 
-    -- 5. Install the newly created RPM immediately so the next modules can use it as a dependency
-    print("--> Installing " .. rpm_name .. " via DNF to satisfy future dependencies...")
-    run("sudo dnf install -y ./" .. rpm_file)
+  -- 5. Install the newly created RPM immediately so the next modules can use it as a dependency
+  print("--> Installing " .. rpm_name .. " via DNF to satisfy future dependencies...")
+  run("sudo dnf install -y ./" .. rpm_file)
 
-    -- 6. Cleanup staging root
-    os.execute("rm -rf " .. module_build_root)
+  -- 6. Cleanup staging root
+  os.execute("rm -rf " .. module_build_root)
 end
 
 -- Execute the build loop ONLY for the selected modules
 for _, module in ipairs(modules_to_compile) do
-    build_and_package_module(module.url, module.dir, module.extra_args)
+  build_and_package_module(module.url, module.dir, module.extra_args)
 end
 
 print("\n============================================================")
@@ -222,7 +222,7 @@ print("SUCCESS! ALL REQUESTED RPMS GENERATED AND INSTALLED.")
 print("============================================================")
 print("The following RPM files are now in your current directory:")
 for _, rpm in ipairs(generated_rpms) do
-    print(" - " .. rpm)
+  print(" - " .. rpm)
 end
 print("\nYou can back these up or move them to a dedicated folder.")
 print("To uninstall them in the future, just run:")
