@@ -2,16 +2,16 @@
 print("============================================================")
 print("       SCRIPT TO COMPILE & PACKAGE HYPRLAND (RPM)    ")
 print("============================================================\n")
-
+ 
 print("This script will compile selected modules into individual staging directories")
 print("and package them into native Fedora .rpm files sequentially.\n")
-
+ 
 print("\nSelect version to compile")
 print("  1) Last git commit (default)")
 print("  2) Last release (most recent tag)")
 io.write("Chose [1]: ")
 local ver_choice = io.read("*l")
-
+ 
 local checkout_cmd
 if ver_choice == "2" then
   checkout_cmd = [[
@@ -29,7 +29,7 @@ else
   ]]
   print("-> Target: Last git commit")
 end
-
+ 
 -- Unified table containing EVERY package in the correct dependency order
 local all_modules = {
   { url = "https://github.com/hyprwm/hyprwayland-scanner.git",         dir = "hyprwayland-scanner" },
@@ -51,9 +51,14 @@ local all_modules = {
     url = "https://github.com/Vladimir-csp/uwsm.git",
     dir = "uwsm",
     extra_args = "-Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled -Dttyautolock=enabled"
+  },
+{
+    url = "https://git.outfoxxed.me/outfoxxed/quickshell.git",
+    dir = "quickshell",
+    extra_args = "-G Ninja -DVENDOR_CPPTRACE=ON -DINSTALL_QMLDIR=/usr/lib64/qt6/qml"
   }
 }
-
+ 
 print("\n============================================================")
 print("PACKAGE SELECTION MENU")
 print("============================================================")
@@ -62,12 +67,12 @@ for i, mod in ipairs(all_modules) do
 end
 print("  0) ALL PACKAGES (Default)")
 print("============================================================")
-
+ 
 io.write("Enter numbers separated by commas (e.g., 12,13,14) or 0 for ALL [0]: ")
 local ans_pkgs = io.read("*l")
-
+ 
 local modules_to_compile = {}
-
+ 
 -- Parse user input
 if ans_pkgs == "" or ans_pkgs:match("0") or ans_pkgs:lower():match("all") then
   modules_to_compile = all_modules
@@ -82,62 +87,62 @@ else
       print("   - " .. all_modules[idx].dir)
     end
   end
-
+ 
   -- Fallback if they typed something invalid
   if #modules_to_compile == 0 then
     print("[!] No valid numbers detected. Defaulting to ALL PACKAGES.")
     modules_to_compile = all_modules
   end
 end
-
+ 
 print("\n============================================================")
 os.execute("sleep 2")
-
+ 
 local function run(cmd)
   print("\n------------------------------------------------------------")
   print("Executing: " .. cmd:match("([^\n]+)"))
   print("------------------------------------------------------------")
-
+ 
   local success, reason, status = os.execute(cmd)
-
+ 
   local failed = false
   if type(success) == "number" and success ~= 0 then failed = true end
   if success == nil or success == false then failed = true end
-
+ 
   if failed then
     print("\n[!] FATAL ERROR:")
     print("Command: \n" .. cmd)
     os.exit(1)
   end
 end
-
+ 
 -- Function to dynamically get the exact version from Git for the RPM
 local function get_pkg_version(folder)
   local handle = io.popen(string.format("cd %s && (git describe --tags --exact-match 2>/dev/null || git tag -l | sort -V | tail -n 1 || git rev-parse --short HEAD)", folder))
   local ver = handle:read("*a")
-
-
+ 
+ 
   handle:close()
-
+ 
   -- Clean up string
   ver = ver:gsub("\n", "")
   ver = ver:gsub("^v", "")   -- Remove leading 'v' (v0.41.0 -> 0.41.0)
   ver = ver:gsub("-", ".")   -- RPM versions CANNOT contain hyphens
-
+ 
   if ver == "" then ver = "0.0.0.unknown" end
-
+ 
   -- RPM versions must ideally start with a number. If it's just a raw hash, prepend 0.0.0.
   if not ver:match("^%d") then
     ver = "0.0.0." .. ver
   end
-
+ 
   return ver
 end
-
+ 
 -- system update
 print("--> System update...")
 run("sudo dnf upgrade --refresh -y")
-
+ 
 local dnf_packages = {
   "git", "meson", "cmake", "ninja-build", "gcc-c++", "pkgconfig",
   "wayland-devel", "wayland-protocols-devel", "pango-devel",
@@ -154,18 +159,19 @@ local dnf_packages = {
   "libXcursor-devel", "iniparser", "iniparser-devel", "qt6-qtbase-devel",
   "qt6-qtwayland-devel", "pipewire-devel", "pipewire", "pipewire-libs",
   "pkgconf-pkg-config", "sdbus-cpp-devel", "systemd-devel", "dbus-devel",
-  "pam-devel", "scdoc",
-
+  "pam-devel", "scdoc", 
+  "git", "cmake", "gcc-c++", "ninja-build", "qt6-qtbase-devel", "qt6-qtdeclarative-devel", "qt6-qtwayland-devel", "wayland-devel", "wayland-protocols-devel", "qt6-qtshadertools-devel", "qt6-qtsvg-devel", "qt6-qtbase-private-devel", "qt6-qtdeclarative-private-devel", "cli11-devel", "cli11-static", "libdrm-devel", "mesa-libgbm-devel", "glib2-devel", "polkit-devel", "jemalloc-devel", "pam-devel", "pipewire-devel", "libunwind-devel","libeis-devel","readline-devel",
+ 
   -- FPM & Python requirements
   "ruby", "ruby-devel", "rpm-build", "python3"
 }
-
+ 
 print("--> Installing dependencies...")
 run("sudo dnf install -y " .. table.concat(dnf_packages, " "))
-
+ 
 print("--> Installing FPM (RubyGem for Packaging)...")
 run("sudo gem install fpm --no-document")
-
+ 
 -- Manual install of glaze
 print("--> Installing Glaze")
 run([[
@@ -179,20 +185,20 @@ run([[
         echo "Glaze already there"
     fi
 ]])
-
+ 
 -- We keep a table to track all the RPMs we generate
 local generated_rpms = {}
-
+ 
 local function build_and_package_module(repo_url, folder_name, extra_args)
   print("\n============================================================")
   print("--> Compiling & Packaging: " .. folder_name)
   print("============================================================")
-
+ 
   local module_build_root = os.getenv("HOME") .. "/build_root_" .. folder_name
   local args = extra_args or ""
   os.execute("rm -rf " .. module_build_root)
   os.execute("mkdir -p " .. module_build_root)
-
+ 
   -- 1. Clone & Checkout
   local clone_cmd = string.format([[
         rm -rf %s
@@ -201,14 +207,18 @@ local function build_and_package_module(repo_url, folder_name, extra_args)
         %s
     ]], folder_name, repo_url, folder_name, checkout_cmd)
   run(clone_cmd)
-
+ 
   -- 2. Get dynamic version of the cloned repo
   local module_version = get_pkg_version(folder_name)
   print("--> Detected Package Version: " .. module_version)
-
+ 
   -- 3. SMART Auto-Detect Compile & Install to Staging Root
-  local build_cmd = string.format([[
+ 
+ 
+ 
+local build_cmd = string.format([[
         cd %s
+        rm -rf build
         if [ -f "CMakeLists.txt" ]; then
             echo "-> CMake build system detected"
             cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release %s -B build
@@ -224,19 +234,19 @@ local function build_and_package_module(repo_url, folder_name, extra_args)
         fi
     ]], folder_name, args, module_build_root, args, module_build_root, folder_name)
   run(build_cmd)
-
+ 
 -- 4. Package into RPM usando nativamente rpmbuild (con dipendenze stringenti)
   local rpm_name = folder_name:lower()
   local spec_path = os.getenv("HOME") .. "/" .. rpm_name .. ".spec"
   local file_list = os.getenv("HOME") .. "/" .. rpm_name .. "-filelist.txt"
-
+ 
   local rpmbuild_cmd = string.format([[
         mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-
+ 
         find %s \( -type f -o -type l \) | sed 's|%s||' > %s
-        
+ 
         sed -i 's/^/"/; s/$/"/' %s
-
+ 
         # 2. Crea dinamicamente il file .spec
         cat << 'EOF' > %s
 Name:           %s
@@ -247,18 +257,18 @@ License:        GPL/MIT
 Provides:       %s
 Conflicts:      %s
 AutoReqProv:    yes
-
+ 
 %%description
 Custom RPM build for %s. Autogenerated from the tool.
-
+ 
 %%define debug_package %%{nil}
 %%define _build_id_links none
-
+ 
 %%files -f %s
 EOF
-
+ 
         rpmbuild -bb --buildroot=%s %s
-
+ 
         find ~/rpmbuild/RPMS -type f -name "%s-%s-1*.rpm" -exec mv {} ./%s-%s-1.x86_64.rpm \;
     ]],
     module_build_root, module_build_root, file_list,
@@ -269,25 +279,25 @@ EOF
     file_list,
     module_build_root, spec_path,
     rpm_name, module_version, rpm_name, module_version)
-
+ 
   run(rpmbuild_cmd)
-
+ 
   local rpm_file = string.format("%s-%s-1.x86_64.rpm", rpm_name, module_version)
   table.insert(generated_rpms, rpm_file)
-
+ 
   -- 5. Install the newly created RPM immediately so the next modules can use it as a dependency
   print("--> Installing " .. rpm_name .. " via DNF to satisfy future dependencies...")
   run("sudo dnf install -y ./" .. rpm_file)
-
+ 
   -- 6. Cleanup staging root
   os.execute("rm -rf " .. module_build_root)
 end
-
+ 
 -- Execute the build loop ONLY for the selected modules
 for _, module in ipairs(modules_to_compile) do
   build_and_package_module(module.url, module.dir, module.extra_args)
 end
-
+ 
 print("\n============================================================")
 print("SUCCESS! ALL REQUESTED RPMS GENERATED AND INSTALLED.")
 print("============================================================")
