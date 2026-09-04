@@ -210,13 +210,16 @@ elif [ -f "meson.build" ]; then
   %%meson %s
   %%meson_build
 fi
-
+    
 %%install
 if [ -f "CMakeLists.txt" ]; then
   %%cmake_install
 elif [ -f "meson.build" ]; then
   %%meson_install
 fi
+
+# Rimuove file di sviluppo terze parti installati da cpptrace/FetchContent per evitare conflitti con Fedora
+rm -rf %%{buildroot}%%{_libdir}/cmake/zstd %%{buildroot}%%{_libdir}/pkgconfig/libdwarf.pc %%{buildroot}%%{_libdir}/pkgconfig/libzstd.pc
 
 find %%{buildroot} -not -type d | sed "s|%%{buildroot}||g" > %%{_builddir}/filelist.txt
 find %%{buildroot}%%{_datadir}/hypr* %%{buildroot}%%{_includedir}/hypr* -type d 2>/dev/null | sed "s|%%{buildroot}|%%dir |g" >> %%{_builddir}/filelist.txt || true
@@ -244,10 +247,12 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
 
   -- F. Sposta gli RPM generati nella cartella dei risultati
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
-
-  -- G. Installa subito il pacchetto generato nel sistema VM!
-  print("--> Installazione pacchetto nel sistema per renderlo disponibile ai successivi...")
-  run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
+  
+  -- G. Installa nel container solo se servono come dipendenza per pacchetti successivi
+  if module.dir ~= "quickshell" then
+    print("--> Installazione pacchetto nel sistema per renderlo disponibile ai successivi...")
+    run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
+  end
 end
 
 print("\n============================================================")
