@@ -249,10 +249,8 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
   
   -- G. Installa nel container solo se servono come dipendenza per pacchetti successivi
-  if module.dir ~= "quickshell" then
-    print("--> Installazione pacchetto nel sistema per renderlo disponibile ai successivi...")
-    run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
-  end
+  print("--> Test di installazione pacchetto nel sistema...")
+  run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
 end
 
 print("\n============================================================")
