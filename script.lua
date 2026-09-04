@@ -130,6 +130,10 @@ end
 -- ============================================================
 local changelog_date = os.date("%a %b %d %Y")
 
+-- Installa in 3 secondi tutti gli RPM già compilati e presenti nella cartella /output
+print("\n--> Ripristino pacchetti già compilati da /output...")
+run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing /output/*.rpm || true")
+
 for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")
   print("--> Processing: " .. module.dir)
