@@ -74,8 +74,8 @@ local all_modules = {
   { 
     url = "https://github.com/outfoxxed/quickshell.git",               
     dir = "quickshell",                  
-    extra_args = "-DVENDOR_CPPTRACE=ON",
-    build_reqs = "qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel" 
+    extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
+    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel" 
   }
 }
 
