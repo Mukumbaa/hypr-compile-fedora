@@ -79,7 +79,19 @@ if [ -n "$REPO_URL" ]; then
     fi
 
     echo "--> Avvio esecuzione: $SCRIPT"
-    exec lua "$SCRIPT"
+    # Rimosso 'exec' per permettere a Bash di proseguire dopo la fine dello script Lua
+    lua "$SCRIPT"
+
+    # Sezione per la generazione dei metadati RPM
+    if [ -d "/output" ]; then
+        echo "============================================================"
+        echo "--> Generazione metadati repository RPM in /output..."
+        echo "============================================================"
+        createrepo_c /output
+        echo "--> Repository generato con successo in /output!"
+    else
+        echo "[!] WARNING: Cartella /output non trovata. Impossibile eseguire createrepo_c."
+    fi
 else
     echo "[!] ERRORE: Nessun REPO_URL specificato."
     echo "    Esempio d'uso: docker run -e REPO_URL=\"https://github.com/tuo-utente/tua-repo.git\" ..."
