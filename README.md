@@ -3,7 +3,7 @@
 This repository contains a script to automate the compilation of Hyprland on Fedora with Docker.
 
 ## Requirements
-Create two files:
+Create two files in the same folder:
 1) Dockerfile
 ```
 FROM registry.fedoraproject.org/fedora:44
