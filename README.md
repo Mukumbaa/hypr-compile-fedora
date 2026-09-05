@@ -8,7 +8,7 @@ Create two files:
 ```
 FROM registry.fedoraproject.org/fedora:44
 
-# 1. Aggiornamento mirror e pacchetti base
+# Update and packages
 RUN dnf --refresh upgrade -y && \
     dnf install -y --setopt=install_weak_deps=False \
     gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config \
@@ -25,7 +25,7 @@ RUN dnf --refresh upgrade -y && \
     pam-devel scdoc vulkan-headers polkit-devel libunwind-devel libdwarf-devel \
     && dnf clean all
 
-# 2. Compilazione nativa di Lua 5.5 con pacchetto pkg-config in /usr/share/pkgconfig
+# Lua 5.5 / pkg-config in /usr/share/pkgconfig
 RUN curl -L -R -O https://www.lua.org/ftp/lua-5.5.0.tar.gz && \
     tar zxf lua-5.5.0.tar.gz && \
     cd lua-5.5.0 && \
@@ -47,11 +47,9 @@ RUN curl -L -R -O https://www.lua.org/ftp/lua-5.5.0.tar.gz && \
       > /usr/share/pkgconfig/lua55.pc && \
     cd .. && rm -rf lua-5.5.0*
 
-# 3. Directory di lavoro
 WORKDIR /workspace
 RUN mkdir -p /output /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
-# 4. Inclusione entrypoint (con sanificazione fine linea CRLF per Windows)
 COPY entrypoint.sh /entrypoint.sh
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
@@ -78,23 +76,21 @@ if [ -n "$REPO_URL" ]; then
         SCRIPT="build.lua"
     fi
 
-    echo "--> Avvio esecuzione: $SCRIPT"
-    # Rimosso 'exec' per permettere a Bash di proseguire dopo la fine dello script Lua
+    echo "--> Exec: $SCRIPT"
     lua "$SCRIPT"
 
-    # Sezione per la generazione dei metadati RPM
     if [ -d "/output" ]; then
         echo "============================================================"
-        echo "--> Generazione metadati repository RPM in /output..."
+        echo "--> METADATA for repository RPM in /output..."
         echo "============================================================"
         createrepo_c /output
-        echo "--> Repository generato con successo in /output!"
+        echo "--> Repository generated in /output!"
     else
-        echo "[!] WARNING: Cartella /output non trovata. Impossibile eseguire createrepo_c."
+        echo "[!] WARNING: no /output folder found."
     fi
 else
-    echo "[!] ERRORE: Nessun REPO_URL specificato."
-    echo "    Esempio d'uso: docker run -e REPO_URL=\"https://github.com/tuo-utente/tua-repo.git\" ..."
+    echo "[!] ERROR: No REPO_URL specified."
+    echo "    Usage ex: docker run -e REPO_URL=\"https://github.com/tuo-utente/tua-repo.git\" ..."
     exit 1
 fi
 ```
