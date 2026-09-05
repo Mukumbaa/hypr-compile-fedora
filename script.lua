@@ -1,7 +1,4 @@
 #!/usr/bin/env lua
--- ============================================================
---   HYPRLAND NATIVE VM BUILD & INSTALL PIPELINE
--- ============================================================
 
 local WORK_DIR = "/tmp/hypr_build_workspace"
 local RESULTS_DIR = "/output"
@@ -23,32 +20,27 @@ local function run(cmd)
   end
 end
 
--- 1. Pulizia cartelle e creazione alberi di directory
+-- Pulizia cartelle e creazione directory
 run(string.format("rm -rf %s && mkdir -p %s %s", WORK_DIR, WORK_DIR, RESULTS_DIR))
 run(string.format("mkdir -p %s/{BUILD,RPMS,SOURCES,SPECS,SRPMS}", RPMBUILD_DIR))
 
-print("============================================================")
-print("     HYPRLAND NATIVE VM PIPELINE (FAST & DIRECT)           ")
-print("============================================================\n")
-
--- 2. Installazione strumenti di build di base sulla VM
-print("--> Assicurazione tool di sviluppo di base installati...")
+-- Installazione strumenti di build di base sulla VM
+print("--> Installing tools...")
 run("dnf install -y gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config")
 
-print("\nSelect version strategy:")
+print("\nSelect version:")
 print("  1) Last release tag (default)")
 print("  2) Last git commit")
 io.write("Chose [1]: ")
 local ver_choice = io.read("*l")
 
--- Se premi solo Invio o scrivi "1", imposta 1 (Release tag) di default
 if ver_choice == nil or ver_choice == "" or ver_choice == "1" then
   ver_choice = "1"
 else
   ver_choice = "2"
 end
 
--- 3. Lista dei moduli in sequenza logica
+-- Lista dei moduli in sequenza logica
 local all_modules = {
   { url = "https://github.com/hyprwm/hyprwayland-scanner.git",         dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel" },
   { url = "https://github.com/hyprwm/hyprland-protocols.git",          dir = "hyprland-protocols",          build_reqs = "" },
@@ -102,7 +94,7 @@ else
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
 
--- 4. Funzione calcolo versione
+-- Funzione calcolo versione
 local function get_pkg_version(repo_dir, strategy)
   if strategy == "1" then
     -- Strategia 1: Ultimo release tag stabile (es. v0.56.2 -> 0.56.2)
@@ -130,12 +122,9 @@ local function get_pkg_version(repo_dir, strategy)
   end
 end
 
--- ============================================================
--- 5. CICLO DI COMPILAZIONE ED INSTALLAZIONE NATIVA
--- ============================================================
 local changelog_date = os.date("%a %b %d %Y")
 
--- Installa in 3 secondi tutti gli RPM già compilati e presenti nella cartella /output
+-- Installa tutti gli RPM già compilati e presenti nella cartella /output se ci sono
 print("\n--> Ripristino pacchetti già compilati da /output...")
 run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing /output/*.rpm || true")
 
@@ -149,13 +138,13 @@ for _, module in ipairs(modules_to_compile) do
   local args = module.extra_args or ""
   local specific_reqs = module.build_reqs or ""
 
-  -- A. Installa subito le dipendenze di sistema Fedora necessarie
+  -- Installa le dipendenze necessarie
   if specific_reqs ~= "" then
     print("--> Installazione dipendenze di sistema per " .. module.dir .. "...")
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
 
-  -- B. Clone e checkout Git
+  -- Clone e checkout Git
   run(string.format("git clone --recursive %s %s", module.url, module_src))
 
   if ver_choice == "1" then
@@ -176,11 +165,11 @@ for _, module in ipairs(modules_to_compile) do
   local module_version = get_pkg_version(module_src, ver_choice)
   print("--> Calculated Version: " .. module_version)
 
-  -- C. Creazione tarball sorgente
+  -- Creazione tarball sorgente
   local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
   run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
-  -- D. Generazione file .spec
+  -- Generazione file .spec
   local spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
   local spec_content = string.format([[
 %%global debug_package %%{nil}
@@ -241,19 +230,19 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
   f:write(spec_content)
   f:close()
 
-  -- E. Compilazione RPM nativa con rpmbuild
+  -- Compilazione RPM nativa con rpmbuild
   print("--> Compilazione RPM in corso...")
   run(string.format("rpmbuild -bb --nodeps %s", spec_file))
 
-  -- F. Sposta gli RPM generati nella cartella dei risultati
+  -- Sposta gli RPM generati nella cartella dei risultati
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
   
-  -- G. Installa nel container solo se servono come dipendenza per pacchetti successivi
+  -- Installa nel container solo se servono come dipendenza per pacchetti successivi
   print("--> Test di installazione pacchetto nel sistema...")
   run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
 end
 
 print("\n============================================================")
-print("TUTTI I PACCHETTI SONO STATI COMPILATI ED INSTALLATI CON SUCCESSO!")
+print("SUCCESS")
 print("============================================================")
-print("Copie di tutti gli RPM generati salvate in: " .. RESULTS_DIR)
+print("RPM saved in: " .. RESULTS_DIR)
