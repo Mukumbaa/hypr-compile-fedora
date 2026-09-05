@@ -12,7 +12,7 @@ FROM registry.fedoraproject.org/fedora:44
 RUN dnf --refresh upgrade -y && \
     dnf install -y --setopt=install_weak_deps=False \
     gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config \
-    make gcc curl \
+    make gcc curl createrepo_c \
     cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel \
     mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libspng-devel \
     file-devel libjxl-devel tomlplusplus-devel libzip-devel wayland-devel wayland-protocols-devel \
