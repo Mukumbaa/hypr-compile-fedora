@@ -28,6 +28,44 @@ run(string.format("mkdir -p %s/{BUILD,RPMS,SOURCES,SPECS,SRPMS}", RPMBUILD_DIR))
 print("--> Installing tools...")
 run("dnf install -y gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config")
 
+--------------------------------------------------------------------------------
+-- CONFIGURAZIONE JOB PARALLELI (RAM / CPU LIMIT)
+--------------------------------------------------------------------------------
+print("\n============================================================")
+print("COMPILATION THREADS / RAM MANAGEMENT")
+print("============================================================")
+print("Limitare i job riduce il consumo di memoria RAM ed evita crash OOM.")
+print("  1) Limit to 2 jobs (Consigliato per < 8GB RAM)")
+print("  2) Limit to 4 jobs (Consigliato per 8-16GB RAM)")
+print("  3) Custom number of jobs")
+print("  0) Unlimited / System Default (Usa tutti i core - Consuma molta RAM)")
+io.write("Choose option [1]: ")
+local job_choice = io.read("*l")
+
+local rpmbuild_jobs_flag = ""
+
+if job_choice == "2" then
+  local j = "4"
+  vim_jobs = j
+  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", j)
+  run(string.format("export NINJA_JOBS=%s && export MAKEFLAGS='-j%s'", j, j))
+elseif job_choice == "3" then
+  io.write("Enter exact number of jobs (e.g. 1, 2, 6): ")
+  local custom_j = io.read("*l")
+  local num = tonumber(custom_j) or 2
+  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%d'", num)
+  run(string.format("export NINJA_JOBS=%d && export MAKEFLAGS='-j%d'", num, num))
+elseif job_choice == "0" then
+  print("--> Warning: Using default system threads. May trigger OOM if RAM is low.")
+  rpmbuild_jobs_flag = ""
+else
+  -- Default: Option 1 (2 Jobs)
+  local j = "2"
+  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", j)
+  run(string.format("export NINJA_JOBS=%s && export MAKEFLAGS='-j%s'", j, j))
+end
+--------------------------------------------------------------------------------
+
 print("\nSelect version:")
 print("  1) Last release tag (default)")
 print("  2) Last git commit")
@@ -230,9 +268,9 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
   f:write(spec_content)
   f:close()
 
-  -- Compilazione RPM nativa con rpmbuild
+  -- Compilazione RPM nativa con rpmbuild includendo la flag per il limite dei thread
   print("--> Compilazione RPM in corso...")
-  run(string.format("rpmbuild -bb --nodeps %s", spec_file))
+  run(string.format("rpmbuild %s -bb --nodeps %s", rpmbuild_jobs_flag, spec_file))
 
   -- Sposta gli RPM generati nella cartella dei risultati
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
