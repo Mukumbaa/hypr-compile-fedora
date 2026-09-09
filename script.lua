@@ -9,7 +9,7 @@ local function run(cmd)
   print("Executing: " .. cmd:match("([^\n]+)"))
   print("------------------------------------------------------------")
 
-  local success, _, code = os.execute(cmd)
+  local success, _, _ = os.execute(cmd)
   local failed = false
   if type(success) == "number" and success ~= 0 then failed = true end
   if success == nil or success == false then failed = true end
@@ -69,28 +69,92 @@ local ver_choice = io.read("*l")
 ver_choice = (ver_choice == "2") and "2" or "1"
 
 local all_modules = {
-  { url = "https://github.com/hyprwm/hyprwayland-scanner.git",        dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel" },
-  { url = "https://github.com/hyprwm/hyprland-protocols.git",         dir = "hyprland-protocols",          build_reqs = "" },
-  { url = "https://github.com/hyprwm/hyprutils.git",                   dir = "hyprutils",                   build_reqs = "pixman-devel" },
-  { url = "https://github.com/hyprwm/hyprlang.git",                    dir = "hyprlang",                    build_reqs = "" },
-  { url = "https://github.com/hyprwm/hyprgraphics.git",               dir = "hyprgraphics",                build_reqs = "cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel mesa-libGLES-devel mesa-libGL-devel libspng-devel file-devel libjxl-devel" },
-  { url = "https://github.com/hyprwm/hyprcursor.git",                  dir = "hyprcursor",                  build_reqs = "cairo-devel librsvg2-devel libzip-devel tomlplusplus-devel" },
-  { url = "https://github.com/hyprwm/aquamarine.git",                  dir = "aquamarine",                  build_reqs = "pixman-devel wayland-devel wayland-protocols-devel libinput-devel libdrm-devel mesa-libgbm-devel libdisplay-info-devel libseat-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel hwdata-devel" },
-  { url = "https://github.com/hyprwm/hyprwire.git",                    dir = "hyprwire",                    build_reqs = "libffi-devel pugixml-devel" },
-  { url = "https://github.com/hyprwm/hyprtoolkit.git",                 dir = "hyprtoolkit",                 build_reqs = "iniparser-devel libxkbcommon-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libdrm-devel pixman-devel" },
-  { url = "https://github.com/hyprwm/hyprland-guiutils.git",           dir = "hyprland-guiutils",           build_reqs = "cairo-devel libxkbcommon-devel libdrm-devel pixman-devel" },
-  { url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir = "xdg-desktop-portal-hyprland", build_reqs = "libuuid-devel sdbus-cpp-devel pipewire-devel qt6-qtbase-devel qt6-qtwayland-devel wayland-devel wayland-protocols-devel libdrm-devel mesa-libgbm-devel mesa-libGL-devel" },
-  { url = "https://github.com/hyprwm/Hyprland.git",                   dir = "Hyprland",                    build_reqs = "readline-devel cairo-devel pango-devel libdrm-devel libinput-devel libxkbcommon-devel libuuid-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-keysyms-devel libxcb-devel tomlplusplus-devel re2-devel lcms2-devel libdisplay-info-devel hwdata-devel glslang-devel muParser-devel libeis-devel libcanberra-devel libXcursor-devel glib2-devel" },
-  { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper",                   build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros" },
-  { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock",                    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel" },
-  { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel" },
-  { 
-    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled", 
-    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg" 
+  {
+    url = "https://github.com/hyprwm/hyprwayland-scanner.git",
+    dir = "hyprwayland-scanner",
+    build_reqs = "pugixml-devel"
   },
-  { 
-    url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
-    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel" 
+  {
+    url = "https://github.com/hyprwm/hyprland-protocols.git",
+    dir = "hyprland-protocols",
+    build_reqs = ""
+  },
+  {
+    url = "https://github.com/hyprwm/hyprutils.git",
+    dir = "hyprutils",
+    build_reqs = "pixman-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprlang.git",
+    dir = "hyprlang",
+    build_reqs = ""
+  },
+  {
+    url = "https://github.com/hyprwm/hyprgraphics.git",
+    dir = "hyprgraphics",
+    build_reqs = "cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel mesa-libGLES-devel mesa-libGL-devel libspng-devel file-devel libjxl-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprcursor.git",
+    dir = "hyprcursor",
+    build_reqs = "cairo-devel librsvg2-devel libzip-devel tomlplusplus-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/aquamarine.git",
+    dir = "aquamarine",
+    build_reqs = "pixman-devel wayland-devel wayland-protocols-devel libinput-devel libdrm-devel mesa-libgbm-devel libdisplay-info-devel libseat-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel hwdata-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprwire.git",
+    dir = "hyprwire",
+    build_reqs = "libffi-devel pugixml-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprtoolkit.git",
+    dir = "hyprtoolkit",
+    build_reqs = "iniparser-devel libxkbcommon-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libdrm-devel pixman-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprland-guiutils.git",
+    dir = "hyprland-guiutils",
+    build_reqs = "cairo-devel libxkbcommon-devel libdrm-devel pixman-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git",
+    dir = "xdg-desktop-portal-hyprland",
+    build_reqs = "libuuid-devel sdbus-cpp-devel pipewire-devel qt6-qtbase-devel qt6-qtwayland-devel wayland-devel wayland-protocols-devel libdrm-devel mesa-libgbm-devel mesa-libGL-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/Hyprland.git",
+    dir = "Hyprland",
+    build_reqs = "readline-devel cairo-devel pango-devel libdrm-devel libinput-devel libxkbcommon-devel libuuid-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-keysyms-devel libxcb-devel tomlplusplus-devel re2-devel lcms2-devel libdisplay-info-devel hwdata-devel glslang-devel muParser-devel libeis-devel libcanberra-devel libXcursor-devel glib2-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprpaper.git",
+    dir = "hyprpaper",
+    build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprlock.git",
+    dir = "hyprlock",
+    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel"
+  },
+  {
+    url = "https://github.com/hyprwm/hyprpicker.git",
+    dir = "hyprpicker",
+    build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel"
+  },
+  {
+    url = "https://github.com/Vladimir-csp/uwsm.git",
+    dir = "uwsm",
+    extra_args = "-Duuctl=enabled -Dfumon=enabled",
+    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg"
+  },
+  {
+    url = "https://github.com/outfoxxed/quickshell.git",
+    dir = "quickshell",
+    extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
+    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel"
   }
 }
 
@@ -254,7 +318,7 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
   run(string.format("rpmbuild %s -bb --nodeps %s", rpmbuild_jobs_flag, spec_file))
 
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
-  
+
   print("--> Test di installazione pacchetto nel sistema...")
   run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
 end
