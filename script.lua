@@ -9,7 +9,7 @@ local function run(cmd)
   print("Executing: " .. cmd:match("([^\n]+)"))
   print("------------------------------------------------------------")
 
-  local success, reason, status = os.execute(cmd)
+  local success, _, code = os.execute(cmd)
   local failed = false
   if type(success) == "number" and success ~= 0 then failed = true end
   if success == nil or success == false then failed = true end
@@ -20,91 +20,76 @@ local function run(cmd)
   end
 end
 
--- Pulizia cartelle e creazione directory
+-- Pulizia e creazione directory
 run(string.format("rm -rf %s && mkdir -p %s %s", WORK_DIR, WORK_DIR, RESULTS_DIR))
 run(string.format("mkdir -p %s/{BUILD,RPMS,SOURCES,SPECS,SRPMS}", RPMBUILD_DIR))
 
--- Installazione strumenti di build di base sulla VM
-print("--> Installing tools...")
+print("--> Installing base tools...")
 run("dnf install -y gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config")
 
 --------------------------------------------------------------------------------
--- CONFIGURAZIONE JOB PARALLELI (RAM / CPU LIMIT)
+-- CONFIGURAZIONE JOB PARALLELI
 --------------------------------------------------------------------------------
 print("\n============================================================")
 print("COMPILATION THREADS / RAM MANAGEMENT")
 print("============================================================")
-print("Limitare i job riduce il consumo di memoria RAM ed evita crash OOM.")
-print("  1) Limit to 2 jobs (Consigliato per < 8GB RAM)")
-print("  2) Limit to 4 jobs (Consigliato per 8-16GB RAM)")
+print("  1) Limit to 2 jobs (<8GB RAM) [Default]")
+print("  2) Limit to 4 jobs (8-16GB RAM)")
 print("  3) Custom number of jobs")
-print("  0) Unlimited / System Default (Usa tutti i core - Consuma molta RAM)")
+print("  0) Unlimited / System Default")
 io.write("Choose option [1]: ")
 local job_choice = io.read("*l")
 
-local rpmbuild_jobs_flag = ""
-
+local num_jobs = "2"
 if job_choice == "2" then
-  local j = "4"
-  vim_jobs = j
-  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", j)
-  run(string.format("export NINJA_JOBS=%s && export MAKEFLAGS='-j%s'", j, j))
+  num_jobs = "4"
 elseif job_choice == "3" then
   io.write("Enter exact number of jobs (e.g. 1, 2, 6): ")
-  local custom_j = io.read("*l")
-  local num = tonumber(custom_j) or 2
-  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%d'", num)
-  run(string.format("export NINJA_JOBS=%d && export MAKEFLAGS='-j%d'", num, num))
+  num_jobs = tostring(tonumber(io.read("*l")) or 2)
 elseif job_choice == "0" then
-  print("--> Warning: Using default system threads. May trigger OOM if RAM is low.")
-  rpmbuild_jobs_flag = ""
-else
-  -- Default: Option 1 (2 Jobs)
-  local j = "2"
-  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", j)
-  run(string.format("export NINJA_JOBS=%s && export MAKEFLAGS='-j%s'", j, j))
+  num_jobs = nil
 end
---------------------------------------------------------------------------------
 
+local rpmbuild_jobs_flag = ""
+local env_jobs_macro = ""
+
+if num_jobs then
+  rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", num_jobs)
+  env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'", num_jobs, num_jobs)
+else
+  print("--> Warning: Using default system threads.")
+end
+
+--------------------------------------------------------------------------------
 print("\nSelect version:")
 print("  1) Last release tag (default)")
 print("  2) Last git commit")
-io.write("Chose [1]: ")
+io.write("Choose [1]: ")
 local ver_choice = io.read("*l")
+ver_choice = (ver_choice == "2") and "2" or "1"
 
-if ver_choice == nil or ver_choice == "" or ver_choice == "1" then
-  ver_choice = "1"
-else
-  ver_choice = "2"
-end
-
--- Lista dei moduli in sequenza logica
 local all_modules = {
-  { url = "https://github.com/hyprwm/hyprwayland-scanner.git",         dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel" },
-  { url = "https://github.com/hyprwm/hyprland-protocols.git",          dir = "hyprland-protocols",          build_reqs = "" },
+  { url = "https://github.com/hyprwm/hyprwayland-scanner.git",        dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel" },
+  { url = "https://github.com/hyprwm/hyprland-protocols.git",         dir = "hyprland-protocols",          build_reqs = "" },
   { url = "https://github.com/hyprwm/hyprutils.git",                   dir = "hyprutils",                   build_reqs = "pixman-devel" },
   { url = "https://github.com/hyprwm/hyprlang.git",                    dir = "hyprlang",                    build_reqs = "" },
-  { url = "https://github.com/hyprwm/hyprgraphics.git",                dir = "hyprgraphics",                build_reqs = "cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel mesa-libGLES-devel mesa-libGL-devel libspng-devel file-devel libjxl-devel" },
+  { url = "https://github.com/hyprwm/hyprgraphics.git",               dir = "hyprgraphics",                build_reqs = "cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel mesa-libGLES-devel mesa-libGL-devel libspng-devel file-devel libjxl-devel" },
   { url = "https://github.com/hyprwm/hyprcursor.git",                  dir = "hyprcursor",                  build_reqs = "cairo-devel librsvg2-devel libzip-devel tomlplusplus-devel" },
   { url = "https://github.com/hyprwm/aquamarine.git",                  dir = "aquamarine",                  build_reqs = "pixman-devel wayland-devel wayland-protocols-devel libinput-devel libdrm-devel mesa-libgbm-devel libdisplay-info-devel libseat-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel hwdata-devel" },
   { url = "https://github.com/hyprwm/hyprwire.git",                    dir = "hyprwire",                    build_reqs = "libffi-devel pugixml-devel" },
   { url = "https://github.com/hyprwm/hyprtoolkit.git",                 dir = "hyprtoolkit",                 build_reqs = "iniparser-devel libxkbcommon-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libdrm-devel pixman-devel" },
   { url = "https://github.com/hyprwm/hyprland-guiutils.git",           dir = "hyprland-guiutils",           build_reqs = "cairo-devel libxkbcommon-devel libdrm-devel pixman-devel" },
   { url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir = "xdg-desktop-portal-hyprland", build_reqs = "libuuid-devel sdbus-cpp-devel pipewire-devel qt6-qtbase-devel qt6-qtwayland-devel wayland-devel wayland-protocols-devel libdrm-devel mesa-libgbm-devel mesa-libGL-devel" },
-  { url = "https://github.com/hyprwm/Hyprland.git",                    dir = "Hyprland",                    build_reqs = "readline-devel cairo-devel pango-devel libdrm-devel libinput-devel libxkbcommon-devel libuuid-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-keysyms-devel libxcb-devel tomlplusplus-devel re2-devel lcms2-devel libdisplay-info-devel hwdata-devel glslang-devel muParser-devel libeis-devel libcanberra-devel libXcursor-devel glib2-devel" },
+  { url = "https://github.com/hyprwm/Hyprland.git",                   dir = "Hyprland",                    build_reqs = "readline-devel cairo-devel pango-devel libdrm-devel libinput-devel libxkbcommon-devel libuuid-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-keysyms-devel libxcb-devel tomlplusplus-devel re2-devel lcms2-devel libdisplay-info-devel hwdata-devel glslang-devel muParser-devel libeis-devel libcanberra-devel libXcursor-devel glib2-devel" },
   { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper",                   build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros" },
   { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock",                    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel" },
   { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel" },
   { 
-    url = "https://github.com/Vladimir-csp/uwsm.git",                  
-    dir = "uwsm",                        
-    extra_args = "-Duuctl=enabled -Dfumon=enabled", 
+    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled", 
     build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg" 
   },
   { 
-    url = "https://github.com/outfoxxed/quickshell.git",               
-    dir = "quickshell",                  
-    extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
+    url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
     build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel" 
   }
 }
@@ -132,29 +117,33 @@ else
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
 
--- Funzione calcolo versione
 local function get_pkg_version(repo_dir, strategy)
+  local cmd
   if strategy == "1" then
-    -- Strategia 1: Ultimo release tag stabile (es. v0.56.2 -> 0.56.2)
-    local h = io.popen(string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir))
-    local ver = h:read("*a"):gsub("\n", ""):gsub("^v", ""):gsub("-", ".")
-    h:close()
+    cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
+  else
+    cmd = string.format("cd %s && (git describe --tags --long 2>/dev/null || echo '')", repo_dir)
+  end
+
+  local h = io.popen(cmd)
+  local ver = h:read("*a"):gsub("\n", "")
+  h:close()
+
+  if strategy == "1" then
+    ver = ver:gsub("^v", ""):gsub("-", ".")
     return (ver ~= "" and ver) or "0.0.0"
   else
-    -- Strategia 2: Ultimo git commit
-    local h_desc = io.popen(string.format("cd %s && git describe --tags --long 2>/dev/null", repo_dir))
-    local desc = h_desc:read("*a"):gsub("\n", "")
-    h_desc:close()
-
-    if desc ~= "" then
-      return desc:gsub("^v", ""):gsub("-g", ".git"):gsub("-", ".")
+    if ver ~= "" then
+      return ver:gsub("^v", ""):gsub("-g", ".git"):gsub("-", ".")
     else
       local h_cnt = io.popen(string.format("cd %s && git rev-list --count HEAD 2>/dev/null || echo 1", repo_dir))
-      local cnt = h_cnt:read("*a"):gsub("\n", "")
+      local cnt = h_cnt:read("*a"):gsub("\n", ""):trim()
       h_cnt:close()
+
       local h_hash = io.popen(string.format("cd %s && git rev-parse --short HEAD 2>/dev/null || echo unknown", repo_dir))
-      local hash = h_hash:read("*a"):gsub("\n", "")
+      local hash = h_hash:read("*a"):gsub("\n", ""):trim()
       h_hash:close()
+
       return string.format("0.0.0.%s.git%s", cnt, hash)
     end
   end
@@ -162,7 +151,7 @@ end
 
 local changelog_date = os.date("%a %b %d %Y")
 
--- Installa tutti gli RPM già compilati e presenti nella cartella /output se ci sono
+-- Ripristina eventuali pacchetti pre-esistenti
 print("\n--> Ripristino pacchetti già compilati da /output...")
 run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing /output/*.rpm || true")
 
@@ -176,13 +165,10 @@ for _, module in ipairs(modules_to_compile) do
   local args = module.extra_args or ""
   local specific_reqs = module.build_reqs or ""
 
-  -- Installa le dipendenze necessarie
   if specific_reqs ~= "" then
-    print("--> Installazione dipendenze di sistema per " .. module.dir .. "...")
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
 
-  -- Clone e checkout Git
   run(string.format("git clone --recursive %s %s", module.url, module_src))
 
   if ver_choice == "1" then
@@ -203,11 +189,9 @@ for _, module in ipairs(modules_to_compile) do
   local module_version = get_pkg_version(module_src, ver_choice)
   print("--> Calculated Version: " .. module_version)
 
-  -- Creazione tarball sorgente
   local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
   run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
-  -- Generazione file .spec
   local spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
   local spec_content = string.format([[
 %%global debug_package %%{nil}
@@ -226,10 +210,10 @@ Native RPM build of %s.
 
 %%prep
 %%autosetup -c
-# Allinea il file VERSION con la versione reale del tag Git (per hyprctl)
 [ -f "VERSION" ] && echo "%%{version}" > VERSION || true
 
 %%build
+%s
 if [ -f "CMakeLists.txt" ]; then
   %%cmake %s
   %%cmake_build
@@ -245,13 +229,11 @@ elif [ -f "meson.build" ]; then
   %%meson_install
 fi
 
-# Rimuove file di sviluppo terze parti installati da cpptrace/FetchContent per evitare conflitti con Fedora
 rm -rf %%{buildroot}%%{_libdir}/cmake/zstd %%{buildroot}%%{_libdir}/pkgconfig/libdwarf.pc %%{buildroot}%%{_libdir}/pkgconfig/libzstd.pc
 
+# Creazione dinamica lista file escludendo le directory generiche
 find %%{buildroot} -not -type d | sed "s|%%{buildroot}||g" > %%{_builddir}/filelist.txt
 find %%{buildroot}%%{_datadir}/hypr* %%{buildroot}%%{_includedir}/hypr* -type d 2>/dev/null | sed "s|%%{buildroot}|%%dir |g" >> %%{_builddir}/filelist.txt || true
-
-# Risolve la compressione automatica (.gz) delle man page di rpmbuild
 sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
 
 %%files -f %%{_builddir}/filelist.txt
@@ -260,7 +242,7 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
 %%changelog
 * %s builder <builder@localhost> - %s-1
 - Native Build
-]], rpm_name, module_version, rpm_name, tarball_name, rpm_name, rpm_name, rpm_name, args, args, changelog_date, module_version)
+]], rpm_name, module_version, rpm_name, tarball_name, rpm_name, rpm_name, rpm_name, env_jobs_macro, args, args, changelog_date, module_version)
 
   spec_content = spec_content:gsub("\n%s+(%%)", "\n%%"):gsub("^%s+(%%)", "%%")
 
@@ -268,14 +250,11 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
   f:write(spec_content)
   f:close()
 
-  -- Compilazione RPM nativa con rpmbuild includendo la flag per il limite dei thread
   print("--> Compilazione RPM in corso...")
   run(string.format("rpmbuild %s -bb --nodeps %s", rpmbuild_jobs_flag, spec_file))
 
-  -- Sposta gli RPM generati nella cartella dei risultati
   run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
   
-  -- Installa nel container solo se servono come dipendenza per pacchetti successivi
   print("--> Test di installazione pacchetto nel sistema...")
   run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
 end
