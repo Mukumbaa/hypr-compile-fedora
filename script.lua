@@ -208,11 +208,11 @@ for _, module in ipairs(modules_to_compile) do
 
   -- Generazione Hash Dipendenze Core e Release Tag
   local deps_hash = get_deps_hash(module.core_deps)
-  local rpm_release = string.format("1.%s", deps_hash)
+  local rpm_release = string.format("1_%s", deps_hash)
   print("--> Calculated Deps Hash: " .. deps_hash .. " (Release: " .. rpm_release .. ")")
 
-  -- Pattern per cercare se L'RPM ESATTO (stessa versione E stesso hash dipendenze) esiste già
-  local target_rpm_pattern = string.format("%s-%s-%s.*.rpm", rpm_name, module_version, rpm_release)
+  -- Pattern per cercare se L'RPM ESATTO esiste già
+  local target_rpm_pattern = string.format("%s-%s-%s*.rpm", rpm_name, module_version, rpm_release)
   local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | head -n 1", RESULTS_DIR, target_rpm_pattern))
   local existing_rpm = h_check:read("*a"):gsub("%s+", "")
   h_check:close()
