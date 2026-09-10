@@ -206,15 +206,12 @@ for _, module in ipairs(modules_to_compile) do
   compiled_versions[module.dir] = module_version
   print("--> Calculated Version: " .. module_version)
 
-  -- Generazione Hash Dipendenze Core e Release Tag
+  -- Generazione Hash Dipendenze Core
   local deps_hash = get_deps_hash(module.core_deps)
-  local build_time = os.date("%Y%m%d%H%M")
-  local rpm_release = string.format("1.%s_%s",build_time, deps_hash)
-  print("--> Calculated Deps Hash: " .. deps_hash .. " (Release: " .. rpm_release .. ")")
 
-  -- Pattern per cercare se L'RPM ESATTO esiste già
-  local target_rpm_pattern = string.format("%s-%s-%s*.rpm", rpm_name, module_version, rpm_release)
-  local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | head -n 1", RESULTS_DIR, target_rpm_pattern))
+  -- Cerca se esiste già un RPM compilato per questo modulo con la STESSA versione e lo STESSO hash di dipendenze
+  local search_pattern = string.format("%s-%s-1.*_%s.fc*.rpm", rpm_name, module_version, deps_hash)
+  local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | head -n 1", RESULTS_DIR, search_pattern))
   local existing_rpm = h_check:read("*a"):gsub("%s+", "")
   h_check:close()
 
@@ -224,12 +221,18 @@ for _, module in ipairs(modules_to_compile) do
     run(string.format("dnf install -y --allowerasing %s", existing_rpm))
   else
     print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
-    
-    -- PULIZIA: Elimina eventuali vecchi RPM di questo modulo prima di compilare quello nuovo
-    run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
+
+    -- Calcola il timestamp solo quando serve davvero compilare una nuova build
+    local build_time = os.date("%Y%m%d%H%M")
+    local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
+    print("--> Generating new build Release: " .. rpm_release)
 
     local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
     run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
+
+
+    -- local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
+    -- run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
     local spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
     local spec_content = string.format([[
@@ -291,8 +294,12 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
     print("--> Compilazione RPM in corso...")
     run(string.format("rpmbuild %s -bb --nodeps %s", rpmbuild_jobs_flag, spec_file))
 
+    -- Rimuovi i vecchi RPM di questo specifico modulo solo ORA che il nuovo è pronto
+    run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
+
+    -- Copia il nuovo RPM appena compilato in /output
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
-    
+
     print("--> Test di installazione pacchetto nel sistema...")
     run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
   end
