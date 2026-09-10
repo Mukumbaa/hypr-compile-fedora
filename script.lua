@@ -208,7 +208,8 @@ for _, module in ipairs(modules_to_compile) do
 
   -- Generazione Hash Dipendenze Core e Release Tag
   local deps_hash = get_deps_hash(module.core_deps)
-  local rpm_release = string.format("1_%s", deps_hash)
+  local build_time = os.date("%Y%m%d%H%M")
+  local rpm_release = string.format("1.%s_%s",build_time, deps_hash)
   print("--> Calculated Deps Hash: " .. deps_hash .. " (Release: " .. rpm_release .. ")")
 
   -- Pattern per cercare se L'RPM ESATTO esiste già
