@@ -76,14 +76,6 @@ else
   print("--> Warning: Using default system threads.")
 end
 
---------------------------------------------------------------------------------
--- print("\nSelect version:")
--- print("  1) Last release tag (default)")
--- print("  2) Last git commit")
--- io.write("Choose [1]: ")
--- local ver_choice = io.read("*l")
--- ver_choice = (ver_choice == "2") and "2" or "1"
-local ver_choice = "1"
 
 local all_modules = {
   { url = "https://github.com/hyprwm/hyprwayland-scanner.git",        dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel", core_deps = {} },
@@ -134,37 +126,6 @@ else
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
 
--- local function get_pkg_version(repo_dir, strategy)
---   local cmd
---   if strategy == "1" then
---     cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
---   else
---     cmd = string.format("cd %s && (git describe --tags --long 2>/dev/null || echo '')", repo_dir)
---   end
---
---   local h = io.popen(cmd)
---   local ver = h:read("*a"):gsub("%s+", "")
---   h:close()
---
---   if strategy == "1" then
---     ver = ver:gsub("^v", ""):gsub("-", ".")
---     return (ver ~= "" and ver) or "0.0.0"
---   else
---     if ver ~= "" then
---       return ver:gsub("^v", ""):gsub("-g", ".git"):gsub("-", ".")
---     else
---       local h_cnt = io.popen(string.format("cd %s && git rev-list --count HEAD 2>/dev/null || echo 1", repo_dir))
---       local cnt = h_cnt:read("*a"):gsub("%s+", "")
---       h_cnt:close()
---
---       local h_hash = io.popen(string.format("cd %s && git rev-parse --short HEAD 2>/dev/null || echo unknown", repo_dir))
---       local hash = h_hash:read("*a"):gsub("%s+", "")
---       h_hash:close()
---
---       return string.format("0.0.0.%s.git%s", cnt, hash)
---     end
---   end
--- end
 
 local function get_pkg_version(repo_dir)
   local cmd
@@ -201,20 +162,6 @@ for _, module in ipairs(modules_to_compile) do
 
   run(string.format("git clone --recursive %s %s", module.url, module_src))
 
-  -- if ver_choice == "1" then
-  --   local checkout_cmd = string.format([[
-  --     cd %s &&
-  --     LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
-  --     [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
-  --     if [ -n "$LATEST_TAG" ]; then
-  --       git checkout "$LATEST_TAG" 2>/dev/null
-  --       git submodule update --init --recursive
-  --     fi
-  --   ]], module_src)
-  --   run(checkout_cmd)
-  -- else
-  --   run(string.format("cd %s && git submodule update --init --recursive", module_src))
-  -- end
   local checkout_cmd = string.format([[
     cd %s &&
     LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
@@ -255,9 +202,6 @@ for _, module in ipairs(modules_to_compile) do
     local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
     run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
-
-    -- local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
-    -- run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
     local spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
     local spec_content = string.format([[
