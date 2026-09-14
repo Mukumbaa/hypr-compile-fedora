@@ -71,7 +71,7 @@ local env_jobs_macro = ""
 
 if num_jobs then
   rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", num_jobs)
-  env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'", num_jobs, num_jobs)
+  env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'\nexport CARGO_BUILD_JOBS=%s", num_jobs, num_jobs, num_jobs)
 else
   print("--> Warning: Using default system threads.")
 end
@@ -238,7 +238,7 @@ elif [ -f "meson.build" ]; then
   %%meson %s
   %%meson_build
 elif [ -f "Cargo.toml" ]; then
-  cargo build --release --locked
+  cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 fi
     
 %%install
