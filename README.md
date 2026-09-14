@@ -9,3 +9,23 @@ and
 ```
 docker run --rm -it -v ${PWD}/hypr_rpms_built:/output hypr-builder
 ```
+
+## List of packages
+- hyprwayland-scanner
+- hyprland-protocols
+- hyprutils
+- hyprlang
+- hyprgraphics
+- hyprcursor
+- aquamarine
+- hyprwire
+- hyprtoolkit
+- hyprland-guiutils
+- xdg-desktop-portal-hyprland
+- hyprland
+- hyprpaper
+- hyprlock
+- hyprpicker
+- uwsm
+- quickshell
+- yazi
