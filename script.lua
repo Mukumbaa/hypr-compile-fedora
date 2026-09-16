@@ -71,7 +71,7 @@ local env_jobs_macro = ""
 
 if num_jobs then
   rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", num_jobs)
-  env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'\nexport CARGO_BUILD_JOBS=%s", num_jobs, num_jobs, num_jobs)
+  env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'\nexport CARGO_BUILD_JOBS=%s\nexport ZIG_FLAGS='-j%s'", num_jobs, num_jobs, num_jobs, num_jobs)
 else
   print("--> Warning: Using default system threads.")
 end
@@ -93,19 +93,37 @@ local all_modules = {
   { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper",                   build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprtoolkit", "hyprwire" } },
   { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock",                    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprgraphics" } },
   { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel", core_deps = { "hyprutils", "hyprwayland-scanner" } },
-  { 
-    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled", 
-    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg", core_deps = {} 
+  {
+    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled",
+    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg", core_deps = {}
   },
-  { 
+  {
     url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
-    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {} 
+    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {}
   },
-  { 
-    url = "https://github.com/sxyazi/yazi.git", 
-    dir = "yazi", 
-    build_reqs = "cargo rustc", 
-    core_deps = {} 
+  {
+    url = "https://github.com/sxyazi/yazi.git",
+    dir = "yazi",
+    build_reqs = "cargo rustc",
+    core_deps = {}
+  },
+  {
+    url = "https://github.com/lua/lua.git",
+    dir = "lua",
+    build_reqs = "readline-devel",
+    core_deps = {}
+  },
+  {
+    url = "https://github.com/LuaLS/lua-language-server.git",
+    dir = "lua-language-server",
+    build_reqs = "libstdc++-static ninja-build",
+    core_deps = {}
+  },
+  {
+    url = "https://github.com/zigtools/zls.git",
+    dir = "zls",
+    build_reqs = "zig",
+    core_deps = {}
   }
 }
 
@@ -231,7 +249,13 @@ Native RPM build of %s.
 
 %%build
 %s
-if [ -f "CMakeLists.txt" ]; then
+if [ "%s" = "lua" ]; then
+  make linux MYCFLAGS="-fPIC" ${MAKEFLAGS}
+elif [ -f "make.sh" ]; then
+  ./make.sh
+elif [ "%s" = "zls" ]; then
+  zig build -Doptimize=ReleaseSafe ${ZIG_FLAGS}
+elif [ -f "CMakeLists.txt" ]; then
   %%cmake %s
   %%cmake_build
 elif [ -f "meson.build" ]; then
@@ -242,13 +266,34 @@ elif [ -f "Cargo.toml" ]; then
 fi
     
 %%install
-if [ -f "CMakeLists.txt" ]; then
+if [ "%s" = "lua" ]; then
+  make INSTALL_TOP=%%{buildroot}%%{_prefix} install
+  mkdir -p %%{buildroot}%%{_libdir}/pkgconfig
+  cat << "EOF" > %%{buildroot}%%{_libdir}/pkgconfig/lua.pc
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib64
+includedir=${prefix}/include
+
+Name: Lua
+Description: Lua programming language
+Version: %s
+Libs: -L${libdir} -llua -lm -ldl
+Cflags: -I${includedir}
+EOF
+elif [ "%s" = "lua-language-server" ]; then
+  install -Dm755 bin/lua-language-server %%{buildroot}%%{_bindir}/lua-language-server
+  mkdir -p %%{buildroot}%%{_datadir}/lua-language-server
+  cp -r main.lua bin lib scripts %%{buildroot}%%{_datadir}/lua-language-server/ 2>/dev/null || true
+elif [ "%s" = "zls" ]; then
+  install -Dm755 zig-out/bin/zls %%{buildroot}%%{_bindir}/zls
+elif [ -f "CMakeLists.txt" ]; then
   %%cmake_install
 elif [ -f "meson.build" ]; then
   %%meson_install
 elif [ -f "Cargo.toml" ]; then
-  install -Dm755 target/release/yazi %%{buildroot}%%{_bindir}/yazi
-  install -Dm755 target/release/ya %%{buildroot}%%{_bindir}/ya
+  install -Dm755 target/release/yazi %%{buildroot}%%{_bindir}/yazi 2>/dev/null || true
+  install -Dm755 target/release/ya %%{buildroot}%%{_bindir}/ya 2>/dev/null || true
 fi
 
 rm -rf %%{buildroot}%%{_libdir}/cmake/zstd %%{buildroot}%%{_libdir}/pkgconfig/libdwarf.pc %%{buildroot}%%{_libdir}/pkgconfig/libzstd.pc
