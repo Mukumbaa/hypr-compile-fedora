@@ -309,7 +309,7 @@ License:        GPL/MIT
 BuildArch:      noarch
 
 # Compositore e Core
-Requires:       Hyprland
+Requires:       hyprland
 Requires:       uwsm
 Requires:       xdg-desktop-portal-hyprland
 Requires:       hyprland-guiutils
