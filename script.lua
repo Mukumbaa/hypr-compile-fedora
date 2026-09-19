@@ -289,3 +289,50 @@ print("\n============================================================")
 print("SUCCESS")
 print("============================================================")
 print("RPM saved in: " .. RESULTS_DIR)
+
+--------------------------------------------------------------------------------
+-- GENERAZIONE METAPACCHETTO hyprland-desktop
+--------------------------------------------------------------------------------
+print("\n============================================================")
+print("--> Generazione Metapacchetto hyprland-desktop...")
+print("============================================================")
+
+local meta_spec = RPMBUILD_DIR .. "/SPECS/hyprland-desktop.spec"
+local meta_f = io.open(meta_spec, "w")
+
+meta_f:write(string.format([[
+Name:           hyprland-desktop
+Version:        1.0
+Release:        1%%{?dist}
+Summary:        Complete Hyprland Desktop Environment Suite
+License:        GPL/MIT
+BuildArch:      noarch
+
+# Compositore e Core
+Requires:       Hyprland
+Requires:       uwsm
+Requires:       xdg-desktop-portal-hyprland
+Requires:       hyprland-guiutils
+
+# Utility e Desktop Tools
+Requires:       hyprpaper
+Requires:       hyprlock
+Requires:       hyprpicker
+Requires:       quickshell
+Requires:       yazi
+
+%%description
+Meta-package to install the complete Hyprland desktop environment, 
+including session manager, portals, tools, and utilities.
+
+%%files
+
+%%changelog
+* %s builder <builder@localhost> - 1.0-1
+- Initial meta-package release
+]], changelog_date))
+
+meta_f:close()
+
+run("rpmbuild -bb " .. meta_spec)
+run("cp -f " .. RPMBUILD_DIR .. "/RPMS/noarch/hyprland-desktop-*.rpm " .. RESULTS_DIR .. "/")
