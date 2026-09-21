@@ -1,1 +1,0 @@
-echo -e "[hyprland-rpm]\nname=Hyprland RPM Repository\nbaseurl=https://mukumbaa.github.io/Hyprland-RPM/\nenabled=1\ngpgcheck=0" | sudo tee /etc/yum.repos.d/hyprland-rpm.repo > /dev/null && sudo dnf makecache
