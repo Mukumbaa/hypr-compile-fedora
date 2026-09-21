@@ -110,7 +110,7 @@ local all_modules = {
 {
     url = "https://github.com/kovidgoyal/kitty.git",
     dir = "kitty",
-    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel slang-compiler vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph",
+    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel slang-compiler vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph ython3-sphinx-design python3-sphinx-theme-furo",
     core_deps = {}
   }
 }
