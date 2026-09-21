@@ -93,9 +93,16 @@ export LANG=C.UTF-8
     --ignore-compiler-warnings
 
 # 2. Compilazione eseguibile Go kitten
-go build -o linux-package/bin/kitten ./tools/cmd
+mkdir -p _build/bin
+go build -o _build/bin/kitten ./tools/cmd
 
-# 3. Compilazione documentazione
+# 3. FIX PER SPHINX: Crea i collegamenti che docs/conf.py si aspetta per generare le manpage
+mkdir -p kitty/launcher/kitty.app/Contents/MacOS
+ln -sr _build/bin/kitten kitty/launcher/
+ln -sr _build/bin/kitten kitty/launcher/kitty.app/Contents/MacOS/
+export PATH="$(pwd)/_build/bin:$PATH"
+
+# 4. Compilazione documentazione
 make docs
 
 %install
