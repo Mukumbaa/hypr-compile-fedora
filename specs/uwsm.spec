@@ -58,6 +58,7 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop 2>/dev/null
 
 %files
 %doc README.md
+%doc %{_docdir}/%{name}/
 %license LICENSE
 %{_bindir}/%{name}
 %{_bindir}/%{name}-app
