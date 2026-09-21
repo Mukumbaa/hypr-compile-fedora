@@ -110,7 +110,7 @@ local all_modules = {
   {
     url = "https://github.com/kovidgoyal/kitty.git",
     dir = "kitty",
-    build_reqs = "golang python3-devel harfbuzz-devel libpng-devel dbus-devel wayland-devel wayland-protocols-devel libxkbcommon-devel xxhash-devel simde-devel openssl-devel",
+    build_reqs = "golang python3-devel harfbuzz-devel libpng-devel dbus-devel wayland-devel wayland-protocols-devel libxkbcommon-devel xxhash-devel simde-devel openssl-devel libxkbcommon-x11-devel fontconfig-devel",
     core_deps = {}
   }
 }
