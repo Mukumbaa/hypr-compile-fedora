@@ -162,7 +162,8 @@ for _, module in ipairs(modules_to_compile) do
   if module.core_deps and #module.core_deps > 0 then
     print("--> Verifica e installazione dipendenze core da /output...")
     for _, dep in ipairs(module.core_deps) do
-      run(string.format("ls %s/%s-[0-9]*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s-[0-9]*.rpm || true", RESULTS_DIR, dep:lower(), RESULTS_DIR, dep:lower()))
+      -- MODIFICA QUI: usa un pattern più ampio per includere anche -devel
+      run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, dep:lower(), RESULTS_DIR, dep:lower()))
     end
   end
   local module_src = WORK_DIR .. "/" .. module.dir
@@ -297,7 +298,7 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
     print("--> Test di installazione pacchetto nel sistema...")
-    run(string.format("dnf install -y --allowerasing %s/%s-[0-9]*.rpm", RESULTS_DIR, rpm_name))
+    run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   end
 end
 
