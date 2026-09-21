@@ -246,7 +246,6 @@ elif [ -f "meson.build" ]; then
 elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
-  fc-cache -f || true
   make linux-package
 fi
     

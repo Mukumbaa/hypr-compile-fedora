@@ -19,6 +19,12 @@ RUN dnf --refresh upgrade -y && \
     pam-devel scdoc vulkan-headers polkit-devel libunwind-devel libdwarf-devel \
     && dnf clean all
 
+# Download ed installazione diretta del Symbols Nerd Font richiesto da Kitty
+RUN mkdir -p /usr/share/fonts/nerd-fonts && \
+    curl -fLo /usr/share/fonts/nerd-fonts/SymbolsNerdFont-Regular.ttf \
+    https://github.com/ryanoasis/nerd-fonts/raw/main/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf && \
+    fc-cache -f -v
+
 # Lua 5.5 / pkg-config in /usr/share/pkgconfig
 RUN curl -L -R -O https://www.lua.org/ftp/lua-5.5.0.tar.gz && \
     tar zxf lua-5.5.0.tar.gz && \
