@@ -23,6 +23,23 @@ end
 
 local compiled_versions = {}
 
+-- Recupera la versione reale da memoria o dagli RPM salvati in /output
+local function resolve_dep_version(dep_dir)
+  if compiled_versions[dep_dir] then
+    return compiled_versions[dep_dir]
+  end
+
+  local h = io.popen(string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower()))
+  local rpm_path = h:read("*a"):gsub("%s+", "")
+  h:close()
+
+  if rpm_path ~= "" then
+    local ver = rpm_path:match(dep_dir:lower() .. "%-(%d+[%d%.]*)%-")
+    if ver then return ver end
+  end
+
+  return "0"
+end
 
 -- Calcola l'hash MD5 basato sulle versioni effettivamente usate/installate
 local function get_deps_hash(deps_list)
@@ -99,23 +116,6 @@ local all_modules = {
   { url = "https://github.com/kovidgoyal/kitty.git",                   dir = "kitty",                       build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo", core_deps = {} }
 }
 
--- Recupera la versione reale da memoria o dagli RPM salvati in /output
-local function resolve_dep_version(dep_dir)
-  if compiled_versions[dep_dir] then
-    return compiled_versions[dep_dir]
-  end
-
-  local h = io.popen(string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower()))
-  local rpm_path = h:read("*a"):gsub("%s+", "")
-  h:close()
-
-  if rpm_path ~= "" then
-    local ver = rpm_path:match(dep_dir:lower() .. "%-(%d+[%d%.]*)%-")
-    if ver then return ver end
-  end
-
-  return "0"
-end
 
 -- Funzione per trovare la definizione di un modulo dato il suo nome di directory
 local function find_module_by_dir(dir_name)
