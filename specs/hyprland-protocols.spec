@@ -1,5 +1,3 @@
-%global debug_package %{nil}
-
 Name:           hyprland-protocols
 Version:        %{?module_version}%{!?module_version:0.7.0}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
@@ -11,18 +9,17 @@ URL:            https://github.com/hyprwm/hyprland-protocols
 Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
 
 Provides:       %{name} = %{version}-%{release}
-Provides:       %{name}-devel = %{version}-%{release}
 
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
-BuildRequires:  pkgconfig(pixman-1)
 
 %description
 %{summary}.
 
 %package        devel
-Summary:        Wayland protocol extensions for Hyprland
+Summary:        Development files for %{name}
 Requires:       %{name} = %{version}-%{release}
+Provides:       %{name}-devel = %{version}-%{release}
 
 %description    devel
 %{summary}.
@@ -37,9 +34,11 @@ Requires:       %{name} = %{version}-%{release}
 %install
 %cmake_install
 
-%files devel
+%files
 %license LICENSE
 %doc README.md
+
+%files devel
 %{_datadir}/pkgconfig/%{name}.pc
 %{_datadir}/%{name}/
 
