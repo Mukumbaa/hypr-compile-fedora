@@ -52,22 +52,21 @@ local function find_module_by_dir(dir_name)
   return nil
 end
 
-local function install_pkg_and_deps(dir_name, installed_table)
-  installed_table = installed_table or {}
-  if installed_table[dir_name] then return end
-  installed_table[dir_name] = true
-
+-- Funzione ricorsiva semplice per installare un pacchetto e le sue dipendenze a catena
+local function install_pkg_and_deps(dir_name)
   local mod = find_module_by_dir(dir_name)
-  if mod and mod.core_deps then
+  if not mod then return end
+
+  -- Se ha dipendenze core, le chiama ricorsivamente PRIMA di installare se stesso
+  if mod.core_deps and #mod.core_deps > 0 then
     for _, dep in ipairs(mod.core_deps) do
-      install_pkg_and_deps(dep, installed_table)
+      install_pkg_and_deps(dep)
     end
   end
 
+  -- Nessuna dipendenza (o dipendenze già installate/risolite): installa il pacchetto corrente
   local rpm_name = dir_name:lower()
   print(string.format("--> [Ricursione] Installazione di %s e relativi pacchetti da /output...", dir_name))
-  
-  -- Installa sia il pacchetto principale che il -devel usando un comando DNF robusto
   run(string.format("dnf install -y --allowerasing %s/%s-*.rpm %s/%s-devel-*.rpm 2>/dev/null || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
 end
 
