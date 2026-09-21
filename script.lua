@@ -41,6 +41,36 @@ local function resolve_dep_version(dep_dir)
   return "0"
 end
 
+-- Funzione per trovare la definizione di un modulo dato il suo nome di directory
+local function find_module_by_dir(dir_name)
+  for _, mod in ipairs(all_modules) do
+    if mod.dir == dir_name then
+      return mod
+    end
+  end
+  return nil
+end
+
+-- Funzione ricorsiva per installare un pacchetto e tutte le sue dipendenze core da /output
+local function install_pkg_and_deps(dir_name, installed_table)
+  installed_table = installed_table or {}
+  if installed_table[dir_name] then return end
+  installed_table[dir_name] = true
+
+  local mod = find_module_by_dir(dir_name)
+  if mod and mod.core_deps then
+    for _, dep in ipairs(mod.core_deps) do
+      -- Chiamata ricorsiva per la dipendenza
+      install_pkg_and_deps(dep, installed_table)
+    end
+  end
+
+  -- Installa il pacchetto corrente e i suoi sotto-pacchetti (-devel, ecc.) da /output se esistono
+  local rpm_name = dir_name:lower()
+  print(string.format("--> [Ricursione] Verifica e installazione di %s e dipendenze da /output...", dir_name))
+  run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
+end
+
 -- Calcola l'hash MD5 basato sulle versioni effettivamente usate/installate
 local function get_deps_hash(deps_list)
   if not deps_list or #deps_list == 0 then return "base" end
@@ -100,7 +130,7 @@ local all_modules = {
   { url = "https://github.com/hyprwm/hyprutils.git",                   dir = "hyprutils",                   build_reqs = "pixman-devel", core_deps = {} },
   { url = "https://github.com/hyprwm/hyprlang.git",                    dir = "hyprlang",                    build_reqs = "", core_deps = { "hyprutils" } },
   { url = "https://github.com/hyprwm/hyprgraphics.git",               dir = "hyprgraphics",                build_reqs = "cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel mesa-libGLES-devel mesa-libGL-devel libspng-devel file-devel libjxl-devel", core_deps = { "hyprutils" } },
-  { url = "https://github.com/hyprwm/hyprcursor.git",                  dir = "hyprcursor",                  build_reqs = "cairo-devel librsvg2-devel libzip-devel tomlplusplus-devel hyprlang-devel", core_deps = { "hyprlang" } },
+  { url = "https://github.com/hyprwm/hyprcursor.git",                  dir = "hyprcursor",                  build_reqs = "cairo-devel librsvg2-devel libzip-devel tomlplusplus-devel", core_deps = { "hyprlang" } },
   { url = "https://github.com/hyprwm/aquamarine.git",                  dir = "aquamarine",                  build_reqs = "pixman-devel wayland-devel wayland-protocols-devel libinput-devel libdrm-devel mesa-libgbm-devel libdisplay-info-devel libseat-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel hwdata-devel", core_deps = { "hyprutils", "hyprwayland-scanner" } },
   { url = "https://github.com/hyprwm/hyprwire.git",                    dir = "hyprwire",                    build_reqs = "libffi-devel pugixml-devel", core_deps = { "hyprutils" } },
   { url = "https://github.com/hyprwm/hyprtoolkit.git",                 dir = "hyprtoolkit",                 build_reqs = "iniparser-devel libxkbcommon-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libdrm-devel pixman-devel", core_deps = { "hyprwayland-scanner", "aquamarine", "hyprgraphics", "hyprutils", "hyprlang" } },
@@ -158,14 +188,15 @@ for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")
   print("--> Processing: " .. module.dir)
   print("============================================================")
--- NUOVO: Installa automaticamente le dipendenze core già pronte in /output prima di processare il modulo
+
+  -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
   if module.core_deps and #module.core_deps > 0 then
-    print("--> Verifica e installazione dipendenze core da /output...")
+    print("--> Avvio risoluzione ricorsiva delle dipendenze per " .. module.dir .. "...")
     for _, dep in ipairs(module.core_deps) do
-      -- MODIFICA QUI: usa un pattern più ampio per includere anche -devel
-      run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, dep:lower(), RESULTS_DIR, dep:lower()))
+      install_pkg_and_deps(dep)
     end
   end
+
   local module_src = WORK_DIR .. "/" .. module.dir
   local rpm_name = module.dir:lower()
   local args = module.extra_args or ""
