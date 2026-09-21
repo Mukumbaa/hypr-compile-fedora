@@ -3,7 +3,7 @@
 local WORK_DIR = "/tmp/hypr_build_workspace"
 local RESULTS_DIR = "/output"
 local RPMBUILD_DIR = "/root/rpmbuild"
-local SPECS_DIR = "specs" -- Cartella dove salveremo i file .spec personalizzati
+local SPECS_DIR = "specs"
 
 local function run(cmd)
   print("\n------------------------------------------------------------")
@@ -21,15 +21,32 @@ local function run(cmd)
   end
 end
 
--- Tabella globale per tracciare le versioni reali usate durante l'esecuzione
 local compiled_versions = {}
 
--- Calcola un hash MD5 di 7 caratteri basato sulle versioni delle dipendenze core
+-- Recupera la versione reale da memoria o dagli RPM salvati in /output
+local function resolve_dep_version(dep_dir)
+  if compiled_versions[dep_dir] then
+    return compiled_versions[dep_dir]
+  end
+
+  local h = io.popen(string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower()))
+  local rpm_path = h:read("*a"):gsub("%s+", "")
+  h:close()
+
+  if rpm_path ~= "" then
+    local ver = rpm_path:match(dep_dir:lower() .. "%-(%d+[%d%.]*)%-")
+    if ver then return ver end
+  end
+
+  return "0"
+end
+
+-- Calcola l'hash MD5 basato sulle versioni effettivamente usate/installate
 local function get_deps_hash(deps_list)
   if not deps_list or #deps_list == 0 then return "base" end
   local str = ""
   for _, dep_dir in ipairs(deps_list) do
-    str = str .. dep_dir .. "=" .. (compiled_versions[dep_dir] or "0") .. ";"
+    str = str .. dep_dir .. "=" .. resolve_dep_version(dep_dir) .. ";"
   end
   local h = io.popen(string.format("echo -n '%s' | md5sum | cut -c1-7", str))
   local hash = h:read("*a"):gsub("%s+", "")
@@ -88,36 +105,15 @@ local all_modules = {
   { url = "https://github.com/hyprwm/hyprwire.git",                    dir = "hyprwire",                    build_reqs = "libffi-devel pugixml-devel", core_deps = { "hyprutils" } },
   { url = "https://github.com/hyprwm/hyprtoolkit.git",                 dir = "hyprtoolkit",                 build_reqs = "iniparser-devel libxkbcommon-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libdrm-devel pixman-devel", core_deps = { "hyprwayland-scanner", "aquamarine", "hyprgraphics", "hyprutils", "hyprlang" } },
   { url = "https://github.com/hyprwm/hyprland-guiutils.git",           dir = "hyprland-guiutils",           build_reqs = "cairo-devel libxkbcommon-devel libdrm-devel pixman-devel", core_deps = { "hyprlang", "hyprutils", "hyprtoolkit" } },
-
-  {
-    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled",
-    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg desktop-file-utils", core_deps = {}
-  },
+  { url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled", build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg desktop-file-utils", core_deps = {} },
   { url = "https://github.com/hyprwm/xdg-desktop-portal-hyprland.git", dir = "xdg-desktop-portal-hyprland", build_reqs = "libuuid-devel sdbus-cpp-devel pipewire-devel qt6-qtbase-devel qt6-qtwayland-devel wayland-devel wayland-protocols-devel libdrm-devel mesa-libgbm-devel mesa-libGL-devel", core_deps = { "hyprlang", "hyprutils", "hyprwayland-scanner", "hyprland-protocols" } },
   { url = "https://github.com/hyprwm/Hyprland.git",                   dir = "Hyprland",                    build_reqs = "readline-devel cairo-devel pango-devel libdrm-devel libinput-devel libxkbcommon-devel libuuid-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-keysyms-devel libxcb-devel tomlplusplus-devel re2-devel lcms2-devel libdisplay-info-devel hwdata-devel glslang-devel muParser-devel libeis-devel libcanberra-devel libXcursor-devel glib2-devel", core_deps = { "hyprutils", "hyprlang", "hyprcursor", "hyprgraphics", "aquamarine", "hyprwayland-scanner", "hyprland-protocols" } },
   { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper",                   build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprtoolkit", "hyprwire" } },
   { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock",                    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprgraphics" } },
   { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel", core_deps = { "hyprutils", "hyprwayland-scanner" } },
-  -- {
-  --   url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled",
-  --   build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg desktop-file-utils", core_deps = {}
-  -- },
-  {
-    url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
-    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {}
-  },
-  {
-    url = "https://github.com/sxyazi/yazi.git",
-    dir = "yazi",
-    build_reqs = "cargo rustc",
-    core_deps = {}
-  },
-  {
-    url = "https://github.com/kovidgoyal/kitty.git",
-    dir = "kitty",
-    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo",
-    core_deps = {}
-  }
+  { url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml", build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {} },
+  { url = "https://github.com/sxyazi/yazi.git",                        dir = "yazi",                        build_reqs = "cargo rustc", core_deps = {} },
+  { url = "https://github.com/kovidgoyal/kitty.git",                   dir = "kitty",                       build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo", core_deps = {} }
 }
 
 print("\n============================================================")
@@ -155,7 +151,6 @@ end
 
 local changelog_date = os.date("%a %b %d %Y")
 
--- NUOVO: Filtra hyprland-desktop a livello di file prima di passarlo a DNF
 print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
 run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
 
@@ -192,9 +187,9 @@ for _, module in ipairs(modules_to_compile) do
 
   local deps_hash = get_deps_hash(module.core_deps)
 
-  -- Controllo RPM esistente
-  local search_pattern = string.format("%s-%s-1.*_%s.fc*.rpm", rpm_name, module_version, deps_hash)
-  local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | head -n 1", RESULTS_DIR, search_pattern))
+  -- Controllo RPM con supporto agli hash dinamici e preesistenti
+  local search_pattern = string.format("%s-%s-1.*.rpm", rpm_name, module_version)
+  local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | grep '_%s' | head -n 1", RESULTS_DIR, search_pattern, deps_hash))
   local existing_rpm = h_check:read("*a"):gsub("%s+", "")
   h_check:close()
 
@@ -215,13 +210,10 @@ for _, module in ipairs(modules_to_compile) do
     local target_spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
     local custom_spec_path = SPECS_DIR .. "/" .. rpm_name .. ".spec"
 
-    -- VERIFICA SE ESISTE UNO .SPEC PERSONALIZZATO
     local custom_spec_file = io.open(custom_spec_path, "r")
     if custom_spec_file then
       custom_spec_file:close()
       print("--> [!] Trovato .spec personalizzato in: " .. custom_spec_path)
-      
-      -- Copia lo spec personalizzato SENZA modificarlo con sed
       run(string.format("cp -f %s %s", custom_spec_path, target_spec_file))
     else
       print("--> Generazione .spec generico in corso...")
@@ -255,19 +247,6 @@ elif [ -f "meson.build" ]; then
 elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
-  export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
-  export LC_ALL=C.UTF-8
-  export LANG=C.UTF-8
-
-  if [ ! -f "/tmp/slang/bin/slangc" ]; then
-    mkdir -p /tmp/slang
-    curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
-    tar -xf /tmp/slang.tar.gz -C /tmp/slang
-  fi
-
-  export PATH="/tmp/slang/bin:$PATH"
-  sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
-  sed -i 's/-j auto/-j 1/g' docs/Makefile
   python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
@@ -306,23 +285,9 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
     end
 
     print("--> Compilazione RPM in corso...")
-    
-    -- ESECUZIONE DI RPMBUILD PASSANDO VERSIONE, RELEASE E SOURCE DINAMICAMENTE
-    local rpmbuild_cmd = string.format(
-      "rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s",
-      rpmbuild_jobs_flag,
-      module_version,
-      rpm_release,
-      tarball_name,
-      target_spec_file
-    )
-    
-    run(rpmbuild_cmd)
+    run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag, module_version, rpm_release, tarball_name, target_spec_file))
 
-    -- Rimuovi i vecchi RPM del modulo
     run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
-
-    -- Copia TUTTI gli RPM generati (inclusi sotto-pacchetti come -devel, -terminfo) in /output
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
     print("--> Test di installazione pacchetto nel sistema...")
@@ -353,23 +318,18 @@ Summary:        Complete Hyprland Desktop Environment Suite
 License:        GPL/MIT
 BuildArch:      noarch
 
-# Compositore e Core
 Requires:       hyprland
 Requires:       uwsm
 Requires:       xdg-desktop-portal-hyprland
 Requires:       hyprland-guiutils
-
-# Utility e Desktop Tools
 Requires:       hyprpaper
 Requires:       hyprlock
 Requires:       hyprpicker
 Requires:       quickshell
 Requires:       yazi
-Requires:       kitty
 
 %%description
-Meta-package to install the complete Hyprland desktop environment, 
-including session manager, portals, tools, and utilities.
+Meta-package to install the complete Hyprland desktop environment suite.
 
 %%files
 
