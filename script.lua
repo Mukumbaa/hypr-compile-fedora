@@ -247,23 +247,25 @@ elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
 
-  # Download ed estrazione del compilatore slangc per gli shader GPU
+  # 1. Scarica ed estrai il compilatore slangc se non è già presente
   if [ ! -f "/tmp/slang/bin/slangc" ]; then
     mkdir -p /tmp/slang
     curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
     tar -xf /tmp/slang.tar.gz -C /tmp/slang
   fi
 
-  # Installazione automatica del modulo sphinx-design e dipendenze per Python 3.14
-  python3 -m pip install --break-system-packages sphinx-design sphinx-copybutton sphinx-inline-tabs sphinxext-opengraph furo || true
-
-  # Cambio tema HTML in classic come nello spec RPM ufficiale di Fedora
-  sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
-
   export PATH="/tmp/slang/bin:$PATH"
 
-  # Esecuzione del packaging con generazione completa di C, Go, Shader e Docs
+  # 2. Patch a docs/conf.py per passare al tema classic (usato in Fedora RPM)
+  sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
+
+  # 3. Disabilita l'esecuzione parallela buggata di Sphinx disattivando '-j auto' nel Makefile delle doc
+  sed -i 's/-j auto/-j 1/g' docs/Makefile
+
+  # 4. Esegui il packaging completo
   python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
