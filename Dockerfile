@@ -8,6 +8,8 @@ RUN dnf --refresh upgrade -y && \
     fontconfig fontawesome-fonts google-noto-sans-fonts harfbuzz-devel zlib-devel slang slang-devel \
     golang python3-devel harfbuzz-devel libpng-devel dbus-devel \
     cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel \
+    python3-pip python3-sphinx python3-sphinx-design python3-sphinx-copybutton \
+    python3-sphinx-inline-tabs python3-sphinxext-opengraph \
     mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libspng-devel \
     file-devel libjxl-devel tomlplusplus-devel libzip-devel wayland-devel wayland-protocols-devel \
     libinput-devel libdrm-devel libdisplay-info-devel libseat-devel hwdata-devel libffi-devel \
