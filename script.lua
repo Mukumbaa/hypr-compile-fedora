@@ -158,7 +158,13 @@ for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")
   print("--> Processing: " .. module.dir)
   print("============================================================")
-
+-- NUOVO: Installa automaticamente le dipendenze core già pronte in /output prima di processare il modulo
+  if module.core_deps and #module.core_deps > 0 then
+    print("--> Verifica e installazione dipendenze core da /output...")
+    for _, dep in ipairs(module.core_deps) do
+      run(string.format("ls %s/%s-[0-9]*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s-[0-9]*.rpm || true", RESULTS_DIR, dep:lower(), RESULTS_DIR, dep:lower()))
+    end
+  end
   local module_src = WORK_DIR .. "/" .. module.dir
   local rpm_name = module.dir:lower()
   local args = module.extra_args or ""
