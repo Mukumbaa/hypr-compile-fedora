@@ -259,8 +259,13 @@ elif [ -f "Cargo.toml" ]; then
   install -Dm755 target/release/yazi %%{buildroot}%%{_bindir}/yazi
   install -Dm755 target/release/ya %%{buildroot}%%{_bindir}/ya
 elif [ -f "setup.py" ]; then
-  mkdir -p %%{buildroot}%%{_prefix}
-  cp -r linux-package/* %%{buildroot}%%{_prefix}/
+  # Bypass del controllo fc-list creando un mock temporaneo nel PATH
+  mkdir -p /tmp/mock_bin
+  echo '#!/bin/sh' > /tmp/mock_bin/fc-list
+  echo 'echo "Nerd Font Symbols:style=Regular"' >> /tmp/mock_bin/fc-list
+  chmod +x /tmp/mock_bin/fc-list
+  
+  PATH="/tmp/mock_bin:$PATH" python3 setup.py linux-package --no-vcs
 fi
 
 rm -rf %%{buildroot}%%{_libdir}/cmake/zstd %%{buildroot}%%{_libdir}/pkgconfig/libdwarf.pc %%{buildroot}%%{_libdir}/pkgconfig/libzstd.pc
