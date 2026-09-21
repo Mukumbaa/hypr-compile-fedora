@@ -1,5 +1,5 @@
 Name:           hyprwire
-Version:        %{?module_version}%{!?module_version:0.1.0}
+Version:        %{?module_version}%{!?module_version:0.3.1}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
 Summary:        Hyprland wire protocol library
 
@@ -45,9 +45,12 @@ Development files for %{name}.
 %{_libdir}/lib%{name}.so.*
 
 %files devel
+%{_bindir}/hyprwire-scanner
 %{_includedir}/%{name}/
 %{_libdir}/lib%{name}.so
 %{_libdir}/pkgconfig/%{name}.pc
+%{_libdir}/pkgconfig/hyprwire-scanner.pc
+%{_libdir}/cmake/hyprwire-scanner/
 
 %changelog
 * Mon Sep 21 2026 builder <builder@localhost> - %{version}-%{release}
