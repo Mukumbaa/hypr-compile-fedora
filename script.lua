@@ -65,9 +65,10 @@ local function install_pkg_and_deps(dir_name, installed_table)
   end
 
   local rpm_name = dir_name:lower()
-  print(string.format("--> [Ricursione] Installazione di %s e relativi -devel da /output...", dir_name))
-  -- Usiamo --allowerasing per rimuovere eventuali conflitti di vecchie versioni delle librerie (.so)
-  run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
+  print(string.format("--> [Ricursione] Installazione di %s e relativi pacchetti da /output...", dir_name))
+  
+  -- Installa sia il pacchetto principale che il -devel usando un comando DNF robusto
+  run(string.format("dnf install -y --allowerasing %s/%s-*.rpm %s/%s-devel-*.rpm 2>/dev/null || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
 end
 
 -- Calcola l'hash MD5 basato sulle versioni effettivamente usate/installate
