@@ -1,0 +1,74 @@
+Name:           hyprtoolkit
+Version:        %{?module_version}%{!?module_version:0.6.0}
+Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Summary:        A modern C++ Wayland-native GUI toolkit
+
+License:        BSD-3-Clause
+URL:            https://github.com/hyprwm/hyprtoolkit
+Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
+
+Provides:       %{name} = %{version}-%{release}
+
+# https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
+ExcludeArch:    %{ix86}
+
+BuildRequires:  cmake
+BuildRequires:  cmake(hyprwayland-scanner)
+BuildRequires:  gcc-c++
+BuildRequires:  mesa-libEGL-devel
+BuildRequires:  ninja-build
+BuildRequires:  pkgconfig(absl_flat_hash_map)
+BuildRequires:  pkgconfig(aquamarine)
+BuildRequires:  pkgconfig(egl)
+BuildRequires:  pkgconfig(gbm)
+BuildRequires:  pkgconfig(hyprgraphics)
+BuildRequires:  pkgconfig(hyprlang)
+BuildRequires:  pkgconfig(hyprutils)
+BuildRequires:  pkgconfig(iniparser)
+BuildRequires:  pkgconfig(libdrm)
+BuildRequires:  pkgconfig(pango)
+BuildRequires:  pkgconfig(pixman-1)
+BuildRequires:  pkgconfig(wayland-client)
+BuildRequires:  pkgconfig(wayland-protocols)
+BuildRequires:  pkgconfig(xkbcommon)
+BuildRequires:  gtest-devel
+
+%description
+%{summary}.
+
+%package        devel
+Summary:        Development files for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       pkgconfig(aquamarine)
+Requires:       pkgconfig(cairo)
+Requires:       pkgconfig(hyprgraphics)
+Provides:       %{name}-devel = %{version}-%{release}
+
+%description    devel
+Development files for %{name}.
+
+%prep
+%autosetup -c -p1
+
+%build
+%cmake -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_TESTING=OFF
+%cmake_build
+
+%install
+%cmake_install
+
+%files
+%license LICENSE
+%doc README.md
+%{_libdir}/lib%{name}.so.*
+
+%files devel
+%{_includedir}/%{name}/
+%{_libdir}/lib%{name}.so
+%{_libdir}/pkgconfig/%{name}.pc
+
+%changelog
+* Mon Sep 21 2026 builder <builder@localhost> - %{version}-%{release}
+- Native Build
