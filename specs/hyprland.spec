@@ -84,9 +84,11 @@ cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua5.5.pc 2>/dev/null || t
 %install
 %cmake_install
 
-# Installazione esplicita dell'unità systemd per la sessione utente
-install -Dpm0644 example/hyprland-session.target %{buildroot}%{_userunitdir}/hyprland-session.target 2>/dev/null || \
-install -Dpm0644 systemd/hyprland-session.target %{buildroot}%{_userunitdir}/hyprland-session.target 2>/dev/null || true
+# Garanzia installazione file di unità systemd
+mkdir -p %{buildroot}%{_userunitdir}
+if [ ! -f "%{buildroot}%{_userunitdir}/hyprland-session.target" ]; then
+    find . -name "hyprland-session.target" -exec cp -f {} %{buildroot}%{_userunitdir}/ \;
+fi
 
 %files
 %license LICENSE
