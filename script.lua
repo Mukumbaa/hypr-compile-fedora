@@ -255,11 +255,10 @@ elif [ -f "setup.py" ]; then
     tar -xf /tmp/slang.tar.gz -C /tmp/slang
   fi
 
-  # Aggiungiamo slangc al PATH per consentire a setup.py di generare gli shader
   export PATH="/tmp/slang/bin:$PATH"
 
-  # Eseguiamo la build di packaging standard
-  python3 setup.py linux-package --vcs-rev "" --ignore-compiler-warnings
+  # Eseguiamo il packaging ignorando la generazione della doc Sphinx
+  python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
 %%install
