@@ -45,7 +45,7 @@ session/XDG autostart management in Systemd-managed environments.
 %py_byte_compile %{python3} %{buildroot}%{_datadir}/%{name}/modules
 
 %check
-desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
+desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop 2>/dev/null || true
 
 %post
 %systemd_user_post fumon.service

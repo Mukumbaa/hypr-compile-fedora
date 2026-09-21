@@ -95,7 +95,7 @@ local all_modules = {
   { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel", core_deps = { "hyprutils", "hyprwayland-scanner" } },
   {
     url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled",
-    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg", core_deps = {}
+    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg desktop-file-utils", core_deps = {}
   },
   {
     url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
