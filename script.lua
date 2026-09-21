@@ -248,14 +248,22 @@ elif [ -f "Cargo.toml" ]; then
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
 
+  # 1. Scarica e imposta slangc
   if [ ! -f "/tmp/slang/bin/slangc" ]; then
     mkdir -p /tmp/slang
     curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
     tar -xf /tmp/slang.tar.gz -C /tmp/slang
   fi
 
+  # 2. Installa le estensioni Sphinx mancanti via pip per Python 3.14
+  python3 -m pip install --break-system-packages sphinx-design sphinx-copybutton sphinx-inline-tabs sphinxext-opengraph furo || true
+
+  # 3. Adatta docs/conf.py per la generazione nativa delle pagine man e html
+  sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
+
   export PATH="/tmp/slang/bin:$PATH"
 
+  # 4. Esegui la build completa
   python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
