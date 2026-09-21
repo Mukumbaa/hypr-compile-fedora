@@ -150,9 +150,9 @@ end
 
 local changelog_date = os.date("%a %b %d %Y")
 
--- NUOVO: Esclude hyprland-desktop dal ripristino automatico
+-- NUOVO: Filtra hyprland-desktop a livello di file prima di passarlo a DNF
 print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
-run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing --exclude='hyprland-desktop*' /output/*.rpm || true")
+run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
 
 for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")
