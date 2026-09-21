@@ -60,7 +60,7 @@ BuildArch:      noarch
 Documentation files for %{name}.
 
 %prep
-%autosetup -n %{name}-%{version} -p1
+%autosetup -c -n %{name}-%{version} -p1
 
 # Imposta il tema classic per Sphinx se necessario
 sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
