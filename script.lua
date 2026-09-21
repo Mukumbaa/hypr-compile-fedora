@@ -151,8 +151,8 @@ end
 
 local changelog_date = os.date("%a %b %d %Y")
 
-print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
-run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
+-- print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
+-- run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
 
 for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")
@@ -196,7 +196,7 @@ for _, module in ipairs(modules_to_compile) do
   if existing_rpm ~= "" then
     print("\n[=] MATCH PERFETTO: RPM già esistente con la stessa versione e dipendenze identiche!")
     print("--> Salto compilazione e installo: " .. existing_rpm)
-    run(string.format("dnf install -y --allowerasing %s", existing_rpm))
+    run(string.format("dnf install -y --allowerasing %s/%s-[0-9]*.rpm", RESULTS_DIR, rpm_name))
   else
     print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
 
@@ -291,7 +291,7 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
     print("--> Test di installazione pacchetto nel sistema...")
-    run(string.format("dnf install -y --allowerasing %s/%s-*.rpm", RESULTS_DIR, rpm_name))
+    run(string.format("dnf install -y --allowerasing %s/%s-[0-9]*.rpm", RESULTS_DIR, rpm_name))
   end
 end
 
