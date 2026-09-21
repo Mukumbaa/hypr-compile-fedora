@@ -2,7 +2,7 @@ FROM registry.fedoraproject.org/fedora:44
 
 # Update e installazione pacchetti di build e sistema
 RUN dnf --refresh upgrade -y && \
-    dnf install -y --setopt=install_weak_deps=False --setopt=skip_missing_names_on_install=True \
+    dnf install -y --skip-unavailable --setopt=install_weak_deps=False \
     gcc-c++ cmake meson ninja-build git git-core tar unzip rpm-build pkgconf-pkg-config \
     make gcc curl createrepo_c cargo rustc \
     fontconfig fontawesome-fonts google-noto-sans-fonts harfbuzz-devel zlib-devel slang slang-devel \
