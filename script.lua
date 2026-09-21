@@ -93,19 +93,25 @@ local all_modules = {
   { url = "https://github.com/hyprwm/hyprpaper.git",                   dir = "hyprpaper",                   build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel mesa-libGLES-devel file-devel systemd-rpm-macros", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprtoolkit", "hyprwire" } },
   { url = "https://github.com/hyprwm/hyprlock.git",                    dir = "hyprlock",                    build_reqs = "pam-devel wayland-devel wayland-protocols-devel cairo-devel pango-devel libdrm-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel sdbus-cpp-devel systemd-devel", core_deps = { "hyprwayland-scanner", "hyprlang", "hyprutils", "hyprgraphics" } },
   { url = "https://github.com/hyprwm/hyprpicker.git",                  dir = "hyprpicker",                  build_reqs = "wayland-devel wayland-protocols-devel cairo-devel pango-devel libxkbcommon-devel mesa-libGLES-devel mesa-libGL-devel", core_deps = { "hyprutils", "hyprwayland-scanner" } },
-  { 
-    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled", 
-    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg", core_deps = {} 
+  {
+    url = "https://github.com/Vladimir-csp/uwsm.git",                  dir = "uwsm",                        extra_args = "-Duuctl=enabled -Dfumon=enabled",
+    build_reqs = "scdoc pam-devel systemd-devel systemd-rpm-macros python3-dbus python3-pyxdg", core_deps = {}
   },
-  { 
+  {
     url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml",
-    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {} 
+    build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {}
   },
-  { 
-    url = "https://github.com/sxyazi/yazi.git", 
-    dir = "yazi", 
-    build_reqs = "cargo rustc", 
-    core_deps = {} 
+  {
+    url = "https://github.com/sxyazi/yazi.git",
+    dir = "yazi",
+    build_reqs = "cargo rustc",
+    core_deps = {}
+  },
+  {
+    url = "https://github.com/kovidgoyal/kitty.git",
+    dir = "kitty",
+    build_reqs = "golang python3-devel harfbuzz-devel libpng-devel dbus-devel wayland-devel wayland-protocols-devel libxkbcommon-devel",
+    core_deps = {}
   }
 }
 
@@ -239,6 +245,8 @@ elif [ -f "meson.build" ]; then
   %%meson_build
 elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
+elif [ -f "setup.py" ]; then
+  python3 setup.py linux-package
 fi
     
 %%install
@@ -249,6 +257,10 @@ elif [ -f "meson.build" ]; then
 elif [ -f "Cargo.toml" ]; then
   install -Dm755 target/release/yazi %%{buildroot}%%{_bindir}/yazi
   install -Dm755 target/release/ya %%{buildroot}%%{_bindir}/ya
+elif [ -f "setup.py" ]; then
+  # Installa il pacchetto distribuito di Kitty direttamente nelle directory di sistema RPM
+  mkdir -p %%{buildroot}%%{_prefix}
+  cp -r linux-package/* %%{buildroot}%%{_prefix}/
 fi
 
 rm -rf %%{buildroot}%%{_libdir}/cmake/zstd %%{buildroot}%%{_libdir}/pkgconfig/libdwarf.pc %%{buildroot}%%{_libdir}/pkgconfig/libzstd.pc
@@ -320,6 +332,7 @@ Requires:       hyprlock
 Requires:       hyprpicker
 Requires:       quickshell
 Requires:       yazi
+Requires:       kitty
 
 %%description
 Meta-package to install the complete Hyprland desktop environment, 
