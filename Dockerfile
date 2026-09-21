@@ -2,14 +2,14 @@ FROM registry.fedoraproject.org/fedora:44
 
 # Update e installazione pacchetti di build e sistema
 RUN dnf --refresh upgrade -y && \
-    dnf install -y --setopt=install_weak_deps=False \
+    dnf install -y --setopt=install_weak_deps=False --setopt=skip_missing_names_on_install=True \
     gcc-c++ cmake meson ninja-build git git-core tar unzip rpm-build pkgconf-pkg-config \
     make gcc curl createrepo_c cargo rustc \
     fontconfig fontawesome-fonts google-noto-sans-fonts harfbuzz-devel zlib-devel slang slang-devel \
     golang python3-devel harfbuzz-devel libpng-devel dbus-devel \
     cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel \
     python3-pip python3-sphinx python3-sphinx-design python3-sphinx-copybutton \
-    python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-theme-furo \
+    python3-sphinx-inline-tabs python3-sphinxext-opengraph \
     mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libspng-devel \
     file-devel libjxl-devel tomlplusplus-devel libzip-devel wayland-devel wayland-protocols-devel \
     libinput-devel libdrm-devel libdisplay-info-devel libseat-devel hwdata-devel libffi-devel \
