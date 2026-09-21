@@ -84,11 +84,9 @@ cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua5.5.pc 2>/dev/null || t
 %install
 %cmake_install
 
-# Spostamento unità systemd utente in /usr/lib/systemd/user
-mkdir -p %{buildroot}%{_prefix}/lib/systemd/user
-if [ -d "%{buildroot}%{_libdir}/systemd/user" ]; then
-    mv %{buildroot}%{_libdir}/systemd/user/* %{buildroot}%{_prefix}/lib/systemd/user/ 2>/dev/null || true
-fi
+# Installazione esplicita dell'unità systemd per la sessione utente
+install -Dpm0644 example/hyprland-session.target %{buildroot}%{_userunitdir}/hyprland-session.target 2>/dev/null || \
+install -Dpm0644 systemd/hyprland-session.target %{buildroot}%{_userunitdir}/hyprland-session.target 2>/dev/null || true
 
 %files
 %license LICENSE
@@ -100,7 +98,7 @@ fi
 %{_datadir}/hypr/
 %{_datadir}/wayland-sessions/hyprland.desktop
 %{_datadir}/xdg-desktop-portal/hyprland-portals.conf
-%{_prefix}/lib/systemd/user/hyprland-session.target
+%{_userunitdir}/hyprland-session.target
 %{_mandir}/man1/hyprctl.1*
 %{_mandir}/man1/Hyprland.1*
 %{_datadir}/bash-completion/completions/hypr*
