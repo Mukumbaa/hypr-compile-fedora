@@ -203,7 +203,7 @@ for _, module in ipairs(modules_to_compile) do
   if existing_rpm ~= "" then
     print("\n[=] MATCH PERFETTO: RPM già esistente con la stessa versione e dipendenze identiche!")
     print("--> Salto compilazione e installo: " .. existing_rpm)
-    run(string.format("dnf install -y --allowerasing %s/%s-[0-9]*.rpm", RESULTS_DIR, rpm_name))
+    run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   else
     print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
 
