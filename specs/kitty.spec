@@ -1,10 +1,11 @@
 Name:           kitty
-Version:        %{?module_version}%{!?module_version:0.0.0}
+Version:        %{?module_version}%{!?module_version:0.49.0}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
 Summary:        Cross-platform, fast, feature full, GPU based terminal emulator
+
 License:        GPL-3.0-only AND LGPL-2.1-or-later AND Zlib AND (MIT AND CC0-1.0) AND BSD-2-Clause AND CC0-1.0
 URL:            https://github.com/kovidgoyal/kitty
-Source0:        %{name}-%{version}.tar.gz
+Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
 
 BuildRequires:  gcc golang >= 1.22.0 python3-devel lcms2-devel ncurses
 BuildRequires:  wayland-devel simde-static dbus-devel fontconfig-devel
@@ -12,7 +13,7 @@ BuildRequires:  harfbuzz-devel libcanberra-devel libpng-devel wayland-protocols-
 BuildRequires:  libXcursor-devel libXi-devel libXinerama-devel libxkbcommon-x11-devel
 BuildRequires:  libXrandr-devel zlib-devel openssl-devel xxhash-devel
 BuildRequires:  python3-sphinx python3-sphinx-design python3-sphinx-copybutton
-BuildRequires:  python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-theme-furo
+BuildRequires:  python3-sphinx-inline-tabs python3-sphinxext-opengraph
 
 Requires:       python3%{?_isa}
 Requires:       hicolor-icon-theme
@@ -62,7 +63,7 @@ Documentation files for %{name}.
 %prep
 %autosetup -c -n %{name}-%{version} -p1
 
-# Imposta il tema classic per Sphinx se necessario
+# Imposta il tema classic per Sphinx
 sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
 sed -i 's/-j auto/-j 1/g' docs/Makefile
 
@@ -96,7 +97,7 @@ export LANG=C.UTF-8
 mkdir -p _build/bin
 go build -o _build/bin/kitten ./tools/cmd
 
-# 3. FIX PER SPHINX: Crea i collegamenti che docs/conf.py si aspetta per generare le manpage
+# 3. FIX PER SPHINX: Crea i collegamenti attesi per le manpage
 mkdir -p kitty/launcher/kitty.app/Contents/MacOS
 ln -sr _build/bin/kitten kitty/launcher/
 ln -sr _build/bin/kitten kitty/launcher/kitty.app/Contents/MacOS/
@@ -113,10 +114,13 @@ find linux-package/%{_lib}/%{name}/shell-integration -type f ! -executable -exec
 mkdir -p %{buildroot}%{_prefix}
 cp -r linux-package/* %{buildroot}%{_prefix}/
 
+# INSTALLAZIONE ESPLICITA DEL BINARIO KITTEN
+install -m 0755 -Dp _build/bin/kitten %{buildroot}%{_bindir}/kitten
+
 # Installazione Manpages e Docs HTML
 install -m 0755 -vd %{buildroot}%{_mandir}/man{1,5}
-install -m 0644 -p docs/_build/man/*.1 %{buildroot}%{_mandir}/man1/ 2>/dev/null || true
-install -m 0644 -p docs/_build/man/*.5 %{buildroot}%{_mandir}/man5/ 2>/dev/null || true
+install -m 0644 -p docs/_build/man/kitten*.1 docs/_build/man/kitty.1 %{buildroot}%{_mandir}/man1/ 2>/dev/null || true
+install -m 0644 -p docs/_build/man/kitty.conf.5 %{buildroot}%{_mandir}/man5/ 2>/dev/null || true
 install -m 0755 -vd %{buildroot}%{_docdir}/%{name}
 cp -r docs/_build/html %{buildroot}%{_docdir}/%{name}/ 2>/dev/null || true
 
@@ -149,3 +153,7 @@ rm -f %{buildroot}%{_docdir}/%{name}/html/.buildinfo \
 %license LICENSE
 %dir %{_docdir}/%{name}
 %{_docdir}/%{name}/html
+
+%changelog
+* Mon Sep 21 2026 builder <builder@localhost> - %{version}-%{release}
+- Native build for Fedora
