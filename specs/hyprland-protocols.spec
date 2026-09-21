@@ -1,3 +1,5 @@
+%global debug_package %{nil}
+
 Name:           hyprland-protocols
 Version:        %{?module_version}%{!?module_version:0.7.0}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
@@ -24,7 +26,7 @@ Requires:       %{name} = %{version}-%{release}
 %{summary}.
 
 %prep
-%autosetup -c -p1
+%autosetup -p1
 
 %build
 %meson
