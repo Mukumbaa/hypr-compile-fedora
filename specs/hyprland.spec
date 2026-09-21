@@ -84,10 +84,17 @@ cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua5.5.pc 2>/dev/null || t
 %install
 %cmake_install
 
-# Garanzia installazione file di unità systemd
+# Creazione automatica dell'unità systemd target per la sessione utente se non generata da cmake
 mkdir -p %{buildroot}%{_userunitdir}
 if [ ! -f "%{buildroot}%{_userunitdir}/hyprland-session.target" ]; then
-    find . -name "hyprland-session.target" -exec cp -f {} %{buildroot}%{_userunitdir}/ \;
+    cat <<'EOF' > %{buildroot}%{_userunitdir}/hyprland-session.target
+[Unit]
+Description=Hyprland compositor session
+Documentation=man:Hyprland(1)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+EOF
 fi
 
 %files
