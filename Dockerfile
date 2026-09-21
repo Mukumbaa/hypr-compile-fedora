@@ -20,9 +20,11 @@ RUN dnf --refresh upgrade -y && \
     && dnf clean all
 
 # Download ed installazione diretta del Symbols Nerd Font richiesto da Kitty
-RUN mkdir -p /usr/share/fonts/nerd-fonts && \
-    curl -fLo /usr/share/fonts/nerd-fonts/SymbolsNerdFont-Regular.ttf \
-    https://github.com/ryanoasis/nerd-fonts/raw/main/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf && \
+RUN dnf install -y unzip && \
+    mkdir -p /usr/share/fonts/nerd-fonts && \
+    curl -fLo https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.zip && \
+    unzip /tmp/symbols.zip -d /usr/share/fonts/nerd-fonts/ && \
+    rm -f /tmp/symbols.zip && \
     fc-cache -f -v
 
 # Lua 5.5 / pkg-config in /usr/share/pkgconfig
