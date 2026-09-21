@@ -52,7 +52,6 @@ local function find_module_by_dir(dir_name)
   return nil
 end
 
--- Funzione ricorsiva per installare un pacchetto e tutte le sue dipendenze core da /output
 local function install_pkg_and_deps(dir_name, installed_table)
   installed_table = installed_table or {}
   if installed_table[dir_name] then return end
@@ -66,7 +65,8 @@ local function install_pkg_and_deps(dir_name, installed_table)
   end
 
   local rpm_name = dir_name:lower()
-  print(string.format("--> [Ricursione] Verifica e installazione di %s e dipendenze da /output...", dir_name))
+  print(string.format("--> [Ricursione] Installazione di %s e relativi -devel da /output...", dir_name))
+  -- Usiamo --allowerasing per rimuovere eventuali conflitti di vecchie versioni delle librerie (.so)
   run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
 end
 
