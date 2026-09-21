@@ -150,9 +150,9 @@ end
 
 local changelog_date = os.date("%a %b %d %Y")
 
--- Ripristina eventuali pacchetti pre-esistenti in /output
-print("\n--> Ripristino pacchetti già compilati da /output...")
-run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing /output/*.rpm || true")
+-- NUOVO: Esclude hyprland-desktop dal ripristino automatico
+print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
+run("ls /output/*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing --exclude='hyprland-desktop*' /output/*.rpm || true")
 
 for _, module in ipairs(modules_to_compile) do
   print("\n============================================================")

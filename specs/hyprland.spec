@@ -67,8 +67,11 @@ Header files and development files for building Hyprland plugins.
 %prep
 %autosetup -c -n %{name}-%{version} -p1
 
-# In Fedora la libreria Lua è identificata come lua.pc
-sed -i 's/lua55/lua/g' CMakeLists.txt
+# Crea i collegamenti di pkg-config per rendere Lua 5.5 visibile a CMake
+mkdir -p /usr/share/pkgconfig
+cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua.pc 2>/dev/null || true
+cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua-5.5.pc 2>/dev/null || true
+cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua5.5.pc 2>/dev/null || true
 
 %build
 %cmake \
