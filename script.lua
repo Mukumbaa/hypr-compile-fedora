@@ -3,6 +3,7 @@
 local WORK_DIR = "/tmp/hypr_build_workspace"
 local RESULTS_DIR = "/output"
 local RPMBUILD_DIR = "/root/rpmbuild"
+local SPECS_DIR = "specs" -- Cartella dove salveremo i file .spec personalizzati
 
 local function run(cmd)
   print("\n------------------------------------------------------------")
@@ -76,7 +77,6 @@ else
   print("--> Warning: Using default system threads.")
 end
 
-
 local all_modules = {
   { url = "https://github.com/hyprwm/hyprwayland-scanner.git",        dir = "hyprwayland-scanner",         build_reqs = "pugixml-devel", core_deps = {} },
   { url = "https://github.com/hyprwm/hyprland-protocols.git",         dir = "hyprland-protocols",          build_reqs = "", core_deps = {} },
@@ -107,10 +107,10 @@ local all_modules = {
     build_reqs = "cargo rustc",
     core_deps = {}
   },
-{
+  {
     url = "https://github.com/kovidgoyal/kitty.git",
     dir = "kitty",
-    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel slang-compiler vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph ython3-sphinx-design python3-sphinx-theme-furo",
+    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo",
     core_deps = {}
   }
 }
@@ -138,11 +138,8 @@ else
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
 
-
 local function get_pkg_version(repo_dir)
-  local cmd
-    cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
-
+  local cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
   local h = io.popen(cmd)
   local ver = h:read("*a"):gsub("%s+", "")
   h:close()
@@ -150,7 +147,6 @@ local function get_pkg_version(repo_dir)
   ver = ver:gsub("^v", ""):gsub("-", ".")
   return (ver ~= "" and ver) or "0.0.0"
 end
-
 
 local changelog_date = os.date("%a %b %d %Y")
 
@@ -185,15 +181,13 @@ for _, module in ipairs(modules_to_compile) do
   ]], module_src)
   run(checkout_cmd)
 
-  -- local module_version = get_pkg_version(module_src, ver_choice)
   local module_version = get_pkg_version(module_src)
   compiled_versions[module.dir] = module_version
   print("--> Calculated Version: " .. module_version)
 
-  -- Generazione Hash Dipendenze Core
   local deps_hash = get_deps_hash(module.core_deps)
 
-  -- Cerca se esiste già un RPM compilato per questo modulo con la STESSA versione e lo STESSO hash di dipendenze
+  -- Controllo RPM esistente
   local search_pattern = string.format("%s-%s-1.*_%s.fc*.rpm", rpm_name, module_version, deps_hash)
   local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | head -n 1", RESULTS_DIR, search_pattern))
   local existing_rpm = h_check:read("*a"):gsub("%s+", "")
@@ -206,7 +200,6 @@ for _, module in ipairs(modules_to_compile) do
   else
     print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
 
-    -- Calcola il timestamp solo quando serve davvero compilare una nuova build
     local build_time = os.date("%Y%m%d%H%M")
     local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
     print("--> Generating new build Release: " .. rpm_release)
@@ -214,14 +207,25 @@ for _, module in ipairs(modules_to_compile) do
     local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
     run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
 
+    local target_spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
+    local custom_spec_path = SPECS_DIR .. "/" .. rpm_name .. ".spec"
 
-    local spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
-    local spec_content = string.format([[
+    -- VERIFICA SE ESISTE UNO .SPEC PERSONALIZZATO
+    local custom_spec_file = io.open(custom_spec_path, "r")
+    if custom_spec_file then
+      custom_spec_file:close()
+      print("--> [!] Trovato .spec personalizzato in: " .. custom_spec_path)
+      
+      -- Copia lo spec personalizzato SENZA modificarlo con sed
+      run(string.format("cp -f %s %s", custom_spec_path, target_spec_file))
+    else
+      print("--> Generazione .spec generico in corso...")
+      local spec_content = string.format([[
 %%global debug_package %%{nil}
 
 Name:           %s
-Version:        %s
-Release:        %s%%{?dist}
+Version:        %%{?module_version}%%{!?module_version:%s}
+Release:        %%{?module_release}%%{!?module_release:%s%%{?dist}}
 Summary:        Native build for %s
 License:        GPL/MIT/BSD
 Source0:        %s
@@ -250,7 +254,6 @@ elif [ -f "setup.py" ]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
 
-  # 1. Scarica ed estrai il compilatore slangc se non è già presente
   if [ ! -f "/tmp/slang/bin/slangc" ]; then
     mkdir -p /tmp/slang
     curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
@@ -258,14 +261,8 @@ elif [ -f "setup.py" ]; then
   fi
 
   export PATH="/tmp/slang/bin:$PATH"
-
-  # 2. Patch a docs/conf.py per passare al tema classic (usato in Fedora RPM)
   sed -i "s/html_theme = 'furo'/html_theme = 'classic'/" docs/conf.py
-
-  # 3. Disabilita l'esecuzione parallela buggata di Sphinx disattivando '-j auto' nel Makefile delle doc
   sed -i 's/-j auto/-j 1/g' docs/Makefile
-
-  # 4. Esegui il packaging completo
   python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
@@ -296,23 +293,35 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
 - Native Build
 ]], rpm_name, module_version, rpm_release, rpm_name, tarball_name, rpm_name, rpm_name, rpm_name, env_jobs_macro, args, args, changelog_date, module_version, rpm_release)
 
-    spec_content = spec_content:gsub("\n%s+(%%)", "\n%%"):gsub("^%s+(%%)", "%%")
+      spec_content = spec_content:gsub("\n%s+(%%)", "\n%%"):gsub("^%s+(%%)", "%%")
 
-    local f = io.open(spec_file, "w")
-    f:write(spec_content)
-    f:close()
+      local f = io.open(target_spec_file, "w")
+      f:write(spec_content)
+      f:close()
+    end
 
     print("--> Compilazione RPM in corso...")
-    run(string.format("rpmbuild %s -bb --nodeps %s", rpmbuild_jobs_flag, spec_file))
+    
+    -- ESECUZIONE DI RPMBUILD PASSANDO VERSIONE, RELEASE E SOURCE DINAMICAMENTE
+    local rpmbuild_cmd = string.format(
+      "rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s",
+      rpmbuild_jobs_flag,
+      module_version,
+      rpm_release,
+      tarball_name,
+      target_spec_file
+    )
+    
+    run(rpmbuild_cmd)
 
-    -- Rimuovi i vecchi RPM di questo specifico modulo solo ORA che il nuovo è pronto
+    -- Rimuovi i vecchi RPM del modulo
     run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
 
-    -- Copia il nuovo RPM appena compilato in /output
+    -- Copia TUTTI gli RPM generati (inclusi sotto-pacchetti come -devel, -terminfo) in /output
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
     print("--> Test di installazione pacchetto nel sistema...")
-    run(string.format("dnf install -y --allowerasing %s/%s-%s-*.rpm", RESULTS_DIR, rpm_name, module_version))
+    run(string.format("dnf install -y --allowerasing %s/%s-*.rpm", RESULTS_DIR, rpm_name))
   end
 end
 

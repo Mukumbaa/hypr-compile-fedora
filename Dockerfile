@@ -1,20 +1,21 @@
 FROM registry.fedoraproject.org/fedora:44
 
-# Update and packages
+# Update e installazione pacchetti di build e sistema
 RUN dnf --refresh upgrade -y && \
     dnf install -y --setopt=install_weak_deps=False \
-    gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config \
+    gcc-c++ cmake meson ninja-build git git-core tar unzip rpm-build pkgconf-pkg-config \
     make gcc curl createrepo_c cargo rustc \
     fontconfig fontawesome-fonts google-noto-sans-fonts harfbuzz-devel zlib-devel slang slang-devel \
     golang python3-devel harfbuzz-devel libpng-devel dbus-devel \
     cairo-devel pango-devel librsvg2-devel libjpeg-turbo-devel libwebp-devel pixman-devel \
     python3-pip python3-sphinx python3-sphinx-design python3-sphinx-copybutton \
-    python3-sphinx-inline-tabs python3-sphinxext-opengraph \
+    python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-theme-furo \
     mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel mesa-libgbm-devel libspng-devel \
     file-devel libjxl-devel tomlplusplus-devel libzip-devel wayland-devel wayland-protocols-devel \
     libinput-devel libdrm-devel libdisplay-info-devel libseat-devel hwdata-devel libffi-devel \
     pugixml-devel iniparser-devel libxkbcommon-devel libuuid-devel sdbus-cpp-devel pipewire-devel \
-    qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel \
+    qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel \
+    qt6-qtshadertools-devel qt6-qtsvg-devel \
     cli11-devel jemalloc-devel xcb-util-wm-devel xcb-util-renderutil-devel xcb-util-errors-devel \
     xcb-util-keysyms-devel libxcb-devel re2-devel lcms2-devel glslang-devel muParser-devel \
     libeis-devel libcanberra-devel libXcursor-devel glib2-devel systemd-rpm-macros systemd-devel \
