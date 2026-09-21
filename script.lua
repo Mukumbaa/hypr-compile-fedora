@@ -246,7 +246,7 @@ elif [ -f "meson.build" ]; then
 elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
-  python3 setup.py linux-package
+  make linux-package
 fi
     
 %%install
@@ -258,7 +258,6 @@ elif [ -f "Cargo.toml" ]; then
   install -Dm755 target/release/yazi %%{buildroot}%%{_bindir}/yazi
   install -Dm755 target/release/ya %%{buildroot}%%{_bindir}/ya
 elif [ -f "setup.py" ]; then
-  # Installa il pacchetto distribuito di Kitty direttamente nelle directory di sistema RPM
   mkdir -p %%{buildroot}%%{_prefix}
   cp -r linux-package/* %%{buildroot}%%{_prefix}/
 fi
