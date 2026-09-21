@@ -13,7 +13,9 @@ Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
 Provides:       %{name} = %{version}-%{release}
 Provides:       %{name}-devel = %{version}-%{release}
 
-BuildRequires:  meson
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  pkgconfig(pixman-1)
 
 %description
 %{summary}.
@@ -26,20 +28,14 @@ Requires:       %{name} = %{version}-%{release}
 %{summary}.
 
 %prep
-%autosetup -c -p1
+%autosetup -c
 
 %build
-# Entra nella cartella creata da -c per eseguire meson
-cd %{name}-%{version}
-%meson
-%meson_build
+%cmake
+%cmake_build
 
 %install
-cd %{name}-%{version}
-%meson_install
-
-%install
-%meson_install
+%cmake_install
 
 %files devel
 %license LICENSE
