@@ -34,7 +34,7 @@ For compositors this is an opportunity to offload Systemd integration and
 session/XDG autostart management in Systemd-managed environments.
 
 %prep
-%autosetup -n %{name}-%{version} -p1
+%autosetup -c -n %{name}-%{version} -p1
 
 %build
 %meson -Duuctl=enabled -Dfumon=enabled -Duwsm-app=enabled
