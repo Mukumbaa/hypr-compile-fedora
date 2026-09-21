@@ -26,11 +26,17 @@ Requires:       %{name} = %{version}-%{release}
 %{summary}.
 
 %prep
-%autosetup -p1
+%autosetup -c -p1
 
 %build
+# Entra nella cartella creata da -c per eseguire meson
+cd %{name}-%{version}
 %meson
 %meson_build
+
+%install
+cd %{name}-%{version}
+%meson_install
 
 %install
 %meson_install
