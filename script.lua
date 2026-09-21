@@ -248,7 +248,6 @@ elif [ -f "Cargo.toml" ]; then
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
 
-  # Scarichiamo ed estraiamo il binario di slangc se non è già presente
   if [ ! -f "/tmp/slang/bin/slangc" ]; then
     mkdir -p /tmp/slang
     curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
@@ -257,7 +256,6 @@ elif [ -f "setup.py" ]; then
 
   export PATH="/tmp/slang/bin:$PATH"
 
-  # Eseguiamo il packaging ignorando la generazione della doc Sphinx
   python3 setup.py linux-package --vcs-rev "" --update-check-interval=0 --ignore-compiler-warnings
 fi
     
