@@ -247,7 +247,19 @@ elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
-  make linux-package
+
+  # Scarichiamo ed estraiamo il binario di slangc se non è già presente
+  if [ ! -f "/tmp/slang/bin/slangc" ]; then
+    mkdir -p /tmp/slang
+    curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
+    tar -xf /tmp/slang.tar.gz -C /tmp/slang
+  fi
+
+  # Aggiungiamo slangc al PATH per consentire a setup.py di generare gli shader
+  export PATH="/tmp/slang/bin:$PATH"
+
+  # Eseguiamo la build di packaging standard
+  python3 setup.py linux-package --vcs-rev "" --ignore-compiler-warnings
 fi
     
 %%install
