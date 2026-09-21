@@ -247,7 +247,7 @@ elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
-  python3 setup.py linux-package --no-vcs
+  python3 setup.py linux-package --vcs-rev "" --skip-code-generation --ignore-compiler-warnings
 fi
     
 %%install
