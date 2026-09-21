@@ -57,7 +57,7 @@ Wayland and X11.
         -DCMAKE_BUILD_TYPE=Release \
         -DDISTRIBUTOR="Fedora Native Build" \
         -DDISTRIBUTOR_DEBUGINFO_AVAILABLE=YES \
-        -DINSTALL_QML_PREFIX=%{_libdir}/qt6/qml \
+        -DINSTALL_QML_PREFIX=%{_lib}/qt6/qml \
         -DVENDOR_CPPTRACE=ON
 %cmake_build
 
