@@ -43,8 +43,9 @@ end
 
 -- Funzione per trovare la definizione di un modulo dato il suo nome di directory
 local function find_module_by_dir(dir_name)
+  if not all_modules then return nil end
   for _, mod in ipairs(all_modules) do
-    if mod.dir == dir_name then
+    if mod.dir and mod.dir:lower() == dir_name:lower() then
       return mod
     end
   end
@@ -60,12 +61,10 @@ local function install_pkg_and_deps(dir_name, installed_table)
   local mod = find_module_by_dir(dir_name)
   if mod and mod.core_deps then
     for _, dep in ipairs(mod.core_deps) do
-      -- Chiamata ricorsiva per la dipendenza
       install_pkg_and_deps(dep, installed_table)
     end
   end
 
-  -- Installa il pacchetto corrente e i suoi sotto-pacchetti (-devel, ecc.) da /output se esistono
   local rpm_name = dir_name:lower()
   print(string.format("--> [Ricursione] Verifica e installazione di %s e dipendenze da /output...", dir_name))
   run(string.format("ls %s/%s*.rpm >/dev/null 2>&1 && dnf install -y --allowerasing %s/%s*.rpm || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
