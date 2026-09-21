@@ -107,11 +107,11 @@ local all_modules = {
     build_reqs = "cargo rustc",
     core_deps = {}
   },
-{ 
-    url = "https://github.com/kovidgoyal/kitty.git", 
-    dir = "kitty", 
-    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel", 
-    core_deps = {} 
+{
+    url = "https://github.com/kovidgoyal/kitty.git",
+    dir = "kitty",
+    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel",
+    core_deps = {}
   }
 }
 
