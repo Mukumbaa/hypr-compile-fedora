@@ -107,11 +107,11 @@ local all_modules = {
     build_reqs = "cargo rustc",
     core_deps = {}
   },
-  {
-    url = "https://github.com/kovidgoyal/kitty.git",
-    dir = "kitty",
-    build_reqs = "golang python3-devel harfbuzz-devel libpng-devel dbus-devel wayland-devel wayland-protocols-devel libxkbcommon-devel xxhash-devel simde-devel openssl-devel libxkbcommon-x11-devel fontconfig-devel fontconfig google-noto-sans-fonts harfbuzz-devel zlib-devel",
-    core_deps = {}
+{ 
+    url = "https://github.com/kovidgoyal/kitty.git", 
+    dir = "kitty", 
+    build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel", 
+    core_deps = {} 
   }
 }
 
@@ -247,7 +247,7 @@ elif [ -f "Cargo.toml" ]; then
   cargo build --release --locked ${CARGO_BUILD_JOBS:+-j $CARGO_BUILD_JOBS}
 elif [ -f "setup.py" ]; then
   export CFLAGS="$CFLAGS -Wno-error=format-truncation -Wno-format-truncation"
-  python3 setup.py linux-package --vcs-rev "" --skip-code-generation --ignore-compiler-warnings
+  make linux-package
 fi
     
 %%install
