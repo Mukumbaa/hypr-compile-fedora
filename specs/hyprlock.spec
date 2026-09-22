@@ -1,3 +1,5 @@
+%global sdbus_version 2.3.1
+
 Name:           hyprlock
 Version:        %{?module_version}%{!?module_version:0.9.6}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
@@ -5,7 +7,6 @@ Summary:        Hyprland's GPU-accelerated screen locking utility
 License:        BSD-3-Clause
 URL:            https://github.com/hyprwm/hyprlock
 Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
-# Source1:        https://github.com/Kistler-Group/sdbus-cpp/archive/v%{sdbus_version}/sdbus-%{sdbus_version}.tar.gz
 
 Provides:       %{name} = %{version}-%{release}
 
@@ -14,6 +15,7 @@ ExcludeArch:    %{ix86}
 
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
+BuildRequires:  curl
 
 BuildRequires:  cmake(hyprwayland-scanner)
 BuildRequires:  pkgconfig(cairo)
@@ -33,27 +35,29 @@ BuildRequires:  pkgconfig(wayland-egl)
 BuildRequires:  pkgconfig(wayland-protocols)
 BuildRequires:  pkgconfig(xkbcommon)
 
-# Provides:       bundled(sdbus-cpp) = %{sdbus_version}
+Provides:       bundled(sdbus-cpp) = %{sdbus_version}
 
 %description
 %{summary}.
 
 %prep
 %autosetup -c -p1
-# mkdir -p subprojects/sdbus-cpp
-# tar -xf %{SOURCE1} -C subprojects/sdbus-cpp --strip=1
+mkdir -p subprojects/sdbus-cpp
+curl -L https://github.com/Kistler-Group/sdbus-cpp/archive/v%{sdbus_version}/sdbus-%{sdbus_version}.tar.gz -o /tmp/sdbus.tar.gz
+tar -xf /tmp/sdbus.tar.gz -C subprojects/sdbus-cpp --strip=1
+rm -f /tmp/sdbus.tar.gz
 
 %build
-# pushd subprojects/sdbus-cpp
+pushd subprojects/sdbus-cpp
 %cmake \
-    # -DCMAKE_INSTALL_PREFIX=%{_builddir}/sdbus \
+    -DCMAKE_INSTALL_PREFIX=%{_builddir}/sdbus \
     -DCMAKE_BUILD_TYPE=Release \
-    # -DSDBUSCPP_BUILD_DOCS=OFF \
+    -DSDBUSCPP_BUILD_DOCS=OFF \
     -DBUILD_SHARED_LIBS=OFF
 %cmake_build
 cmake --install %{_vpath_builddir}
 popd
-# export PKG_CONFIG_PATH=%{_builddir}/sdbus/%{_lib}/pkgconfig
+export PKG_CONFIG_PATH=%{_builddir}/sdbus/%{_lib}/pkgconfig
 
 %cmake -DCMAKE_BUILD_TYPE=Release
 %cmake_build
