@@ -1,26 +1,30 @@
 Name:           caskaydia-mono-nerd-fonts
-Version:        3.3.0
+Version:        1.0
 Release:        %{?module_version}%{!?module_version:1%{?dist}}
 Summary:        CaskaydiaMono Nerd Font (Cascadia Mono with patched glyphs)
 
 License:        MIT
 URL:            https://github.com/ryanoasis/nerd-fonts
-Source0:        https://github.com/ryanoasis/nerd-fonts/releases/download/v%{version}/CascadiaMono.zip
+Source0:        https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaMono.zip
 
 BuildArch:      noarch
 BuildRequires:  unzip
 
 Provides:       %{name} = %{version}-%{release}
 
+# https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
+ExcludeArch:    %{ix86}
+
 %description
 CaskaydiaMono Nerd Font is the patched version of Microsoft's Cascadia Mono font, 
 containing a high number of glyphs (icons) for developer tools.
 
 %prep
+# L'opzione -c crea la cartella e scompatta il singolo zip pulito
 %autosetup -c
 
 %build
-# I font non richiedono passaggi di compilazione
+# I font non richiedono compilazione
 
 %install
 install -m 0755 -d %{buildroot}%{_datadir}/fonts/caskaydia-mono
