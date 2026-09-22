@@ -1,5 +1,3 @@
-%global sdbus_version 2.3.1
-
 Name:           hyprlock
 Version:        %{?module_version}%{!?module_version:0.9.6}
 Release:        %{?module_release}%{!?module_release:1%{?dist}}
@@ -55,7 +53,7 @@ pushd subprojects/sdbus-cpp
 %cmake_build
 cmake --install %{_vpath_builddir}
 popd
-export PKG_CONFIG_PATH=%5{_builddir}/sdbus/%{_lib}/pkgconfig
+export PKG_CONFIG_PATH=%{_builddir}/sdbus/%{_lib}/pkgconfig
 
 %cmake -DCMAKE_BUILD_TYPE=Release
 %cmake_build
