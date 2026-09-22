@@ -260,12 +260,12 @@ for _, module in ipairs(modules_to_compile) do
     -- Download diretto per file non-git (es. font zip)
     run(string.format("mkdir -p %s", module_src))
     tarball_name = "CascadiaMono.zip"
-    print("--> Download diretto di " + module.url + " in SOURCES...")
+    print("--> Download diretto di " .. module.url .. " in SOURCES...")
     run(string.format("curl -L -fLo %s/SOURCES/%s %s", RPMBUILD_DIR, tarball_name, module.url))
   end
 
   compiled_versions[module.dir] = module_version
-  print("--> Calculated Version: " + module_version)
+  print("--> Calculated Version: " .. module_version)
 
 
 
