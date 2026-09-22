@@ -15,6 +15,9 @@ Provides:       %{name} = %{version}-%{release}
 # https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
 ExcludeArch:    %{ix86}
 
+BuildRequires:  golang
+BuildRequires:  git
+
 %description
 %{summary}
 
@@ -22,14 +25,11 @@ ExcludeArch:    %{ix86}
 %autosetup -c
 
 %build
+# Compilazione tramite Go
+go build -o %{binary_name}
 
 %install
-# Adatta il percorso di installazione in base a come viene estratto il tarball nel workspace
-if [ -d "dist" ]; then
-  install -p -D dist/*/%{binary_name} %{buildroot}%{_bindir}/%{binary_name}
-else
-  install -p -D %{binary_name} %{buildroot}%{_bindir}/%{binary_name}
-fi
+install -p -D %{binary_name} %{buildroot}%{_bindir}/%{binary_name}
 
 %files
 %license LICENSE
