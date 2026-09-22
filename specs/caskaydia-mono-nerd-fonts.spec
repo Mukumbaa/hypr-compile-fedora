@@ -1,5 +1,5 @@
 Name:           caskaydia-mono-nerd-fonts
-Version:        3.3.0
+Version:        %{?module_version}%{!?module_version:3.3.0}
 Release:        %{?module_version}%{!?module_version:1%{?dist}}
 Summary:        CaskaydiaMono Nerd Font (Cascadia Mono with patched glyphs)
 
