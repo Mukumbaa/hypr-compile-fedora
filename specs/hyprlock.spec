@@ -33,15 +33,15 @@ BuildRequires:  pkgconfig(wayland-egl)
 BuildRequires:  pkgconfig(wayland-protocols)
 BuildRequires:  pkgconfig(xkbcommon)
 
-Provides:       bundled(sdbus-cpp) = %{sdbus_version}
+# Provides:       bundled(sdbus-cpp) = %{sdbus_version}
 
 %description
 %{summary}.
 
 %prep
 %autosetup -c -p1
-mkdir -p subprojects/sdbus-cpp
-tar -xf %{SOURCE1} -C subprojects/sdbus-cpp --strip=1
+# mkdir -p subprojects/sdbus-cpp
+# tar -xf %{SOURCE1} -C subprojects/sdbus-cpp --strip=1
 
 %build
 pushd subprojects/sdbus-cpp
