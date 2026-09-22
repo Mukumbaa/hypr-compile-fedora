@@ -5,7 +5,8 @@ Summary:        CaskaydiaMono Nerd Font (Cascadia Mono with patched glyphs)
 
 License:        MIT
 URL:            https://github.com/ryanoasis/nerd-fonts
-Source0:        %{?source_tarball}%{!?source_tarball:CascadiaMono.zip}
+# Prende direttamente lo zip scaricato in SOURCES
+Source0:        CascadiaMono.zip
 
 BuildArch:      noarch
 BuildRequires:  unzip
@@ -20,8 +21,8 @@ CaskaydiaMono Nerd Font is the patched version of Microsoft's Cascadia Mono font
 containing a high number of glyphs (icons) for developer tools.
 
 %prep
-# -c crea una cartella e scompatta lo zip al suo interno
-%autosetup -c
+# Crea la cartella ed estrae lo zip direttamente qui dentro
+%setup -c
 
 %build
 # I font non richiedono compilazione
@@ -29,10 +30,7 @@ containing a high number of glyphs (icons) for developer tools.
 %install
 rm -rf %{buildroot}
 install -m 0755 -d %{buildroot}%{_datadir}/fonts/caskaydia-mono
-
-# Poiché -c crea una cartella con il nome del pacchetto, entriamo lì dentro o usiamo il percorso
-install -m 0644 *-Regular.ttf *-Bold.ttf *-Italic.ttf *.ttf %{buildroot}%{_datadir}/fonts/caskaydia-mono/ 2>/dev/null || true
-# Alternativa più robusta usando find direttamente nella cartella di build:
+# Copia tutti i file ttf e otf trovati nella cartella estratta
 find . -name "*.ttf" -exec cp -f {} %{buildroot}%{_datadir}/fonts/caskaydia-mono/ \;
 find . -name "*.otf" -exec cp -f {} %{buildroot}%{_datadir}/fonts/caskaydia-mono/ \;
 
