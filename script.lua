@@ -236,7 +236,7 @@ for _, module in ipairs(modules_to_compile) do
 
 
   local is_git = module.url:match("%.git$")
-  local module_version = "3.3.0"
+  local module_version = "0.0.0"
   local tarball_name = ""
 
   if is_git then
@@ -257,8 +257,8 @@ for _, module in ipairs(modules_to_compile) do
     tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
     run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
   else
-    -- Download diretto per file non-git (es. font zip)
     run(string.format("mkdir -p %s", module_src))
+    module_version = "3.3.0"
     tarball_name = "CascadiaMono.zip"
     print("--> Download diretto di " .. module.url .. " in SOURCES...")
     run(string.format("curl -L -fLo %s/SOURCES/%s %s", RPMBUILD_DIR, tarball_name, module.url))
