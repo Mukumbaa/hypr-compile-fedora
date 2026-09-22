@@ -115,7 +115,7 @@ local all_modules = {
   { url = "https://github.com/sxyazi/yazi.git",                        dir = "yazi",                        build_reqs = "cargo rustc", core_deps = {} },
   { url = "https://github.com/kovidgoyal/kitty.git",                   dir = "kitty",                       build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo", core_deps = {} },
 { url = "https://github.com/yorukot/superfile.git", dir = "superfile", build_reqs = "", core_deps = {} },
-{ url = "https://github.com/ryanoasis/nerd-fonts", dir = "caskaydia-mono-nerd-fonts", build_reqs = "unzip", core_deps = {} },
+{ url = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaMono.zip", dir = "caskaydia-mono-nerd-fonts", build_reqs = "unzip", core_deps = {} },
 }
 
 
@@ -216,22 +216,62 @@ for _, module in ipairs(modules_to_compile) do
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
 
-  run(string.format("git clone --recursive %s %s", module.url, module_src))
+  -- run(string.format("git clone --recursive %s %s", module.url, module_src))
+  --
+  -- local checkout_cmd = string.format([[
+  --   cd %s &&
+  --   LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
+  --   [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
+  --   if [ -n "$LATEST_TAG" ]; then
+  --     git checkout "$LATEST_TAG" 2>/dev/null
+  --     git submodule update --init --recursive
+  --   fi
+  -- ]], module_src)
+  -- run(checkout_cmd)
+  --
+  -- local module_version = get_pkg_version(module_src)
+  -- compiled_versions[module.dir] = module_version
+  -- print("--> Calculated Version: " .. module_version)
 
-  local checkout_cmd = string.format([[
-    cd %s &&
-    LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
-    [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
-    if [ -n "$LATEST_TAG" ]; then
-      git checkout "$LATEST_TAG" 2>/dev/null
-      git submodule update --init --recursive
-    fi
-  ]], module_src)
-  run(checkout_cmd)
 
-  local module_version = get_pkg_version(module_src)
+
+  local is_git = module.url:match("%.git$")
+  local module_version = "3.3.0"
+  local tarball_name = ""
+
+  if is_git then
+    run(string.format("git clone --recursive %s %s", module.url, module_src))
+
+    local checkout_cmd = string.format([[
+      cd %s &&
+      LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
+      [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
+      if [ -n "$LATEST_TAG" ]; then
+        git checkout "$LATEST_TAG" 2>/dev/null
+        git submodule update --init --recursive
+      fi
+    ]], module_src)
+    run(checkout_cmd)
+
+    module_version = get_pkg_version(module_src)
+    tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
+    run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
+  else
+    -- Download diretto per file non-git (es. font zip)
+    run(string.format("mkdir -p %s", module_src))
+    tarball_name = "CascadiaMono.zip"
+    print("--> Download diretto di " + module.url + " in SOURCES...")
+    run(string.format("curl -L -fLo %s/SOURCES/%s %s", RPMBUILD_DIR, tarball_name, module.url))
+  end
+
   compiled_versions[module.dir] = module_version
-  print("--> Calculated Version: " .. module_version)
+  print("--> Calculated Version: " + module_version)
+
+
+
+
+
+
 
   local deps_hash = get_deps_hash(module.core_deps)
 
