@@ -21,6 +21,11 @@ if [ -n "$REPO_URL" ]; then
 
     if [ -d "/output" ]; then
         echo "============================================================"
+        echo "--> Pulizia dei pacchetti di debug superflui..."
+        echo "============================================================"
+        rm -f /output/*-debuginfo-*.rpm /output/*-debugsource-*.rpm
+
+        echo "============================================================"
         echo "--> METADATA for repository RPM in /output..."
         echo "============================================================"
         createrepo_c /output
