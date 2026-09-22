@@ -1,6 +1,6 @@
 Name:           caskaydia-mono-nerd-fonts
 Version:        %{?module_version}%{!?module_version:3.3.0}
-Release:        %{?module_version}%{!?module_version:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1%{?dist}}
 Summary:        CaskaydiaMono Nerd Font (Cascadia Mono with patched glyphs)
 
 License:        MIT
