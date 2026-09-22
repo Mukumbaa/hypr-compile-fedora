@@ -7,7 +7,7 @@ docker build -t hypr-builder .
 ```
 and
 ```
-docker run --rm -it -v ${PWD}/hypr_rpms_built:/output hypr-builder
+docker run --rm -it -v ~/Hyprland-RPM:/output hypr-builder
 ```
 
 ## List of packages
