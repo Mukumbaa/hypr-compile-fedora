@@ -161,12 +161,19 @@ io.write("Enter numbers or 0 for ALL [0]: ")
 local ans_pkgs = io.read("*l")
 
 local modules_to_compile = {}
-if ans_pkgs == "" or ans_pkgs:match("0") or ans_pkgs:lower():match("all") then
+if ans_pkgs == "" or ans_pkgs:match("^%s*0%s*$") or ans_pkgs:lower():match("all") then
   modules_to_compile = all_modules
 else
-  for num_str in ans_pkgs:gmatch("%d+") do
-    local idx = tonumber(num_str)
-    if idx and all_modules[idx] then table.insert(modules_to_compile, all_modules[idx]) end
+  -- Controlla se è stato inserito un numero singolo esatto (es. 20)
+  local single_idx = tonumber(ans_pkgs)
+  if single_idx and all_modules[single_idx] then
+    table.insert(modules_to_compile, all_modules[single_idx])
+  else
+    -- Altrimenti gestisce eventuali liste separate da spazi (es. "1 3 5")
+    for num_str in ans_pkgs:gmatch("%d+") do
+      local idx = tonumber(num_str)
+      if idx and all_modules[idx] then table.insert(modules_to_compile, all_modules[idx]) end
+    end
   end
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
