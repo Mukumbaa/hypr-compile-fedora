@@ -288,12 +288,32 @@ for _, module in ipairs(modules_to_compile) do
   else
     print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
 
+    -- local build_time = os.date("%Y%m%d%H%M")
+    -- local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
+    -- print("--> Generating new build Release: " .. rpm_release)
+    --
+    -- local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
+    -- run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
+
+
     local build_time = os.date("%Y%m%d%H%M")
     local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
     print("--> Generating new build Release: " .. rpm_release)
 
-    local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
-    run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
+    local tarball_name = ""
+    if module.dir == "caskaydia-mono-nerd-fonts" then
+      tarball_name = "CascadiaMono.zip"
+    else
+      tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
+      run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
+    end
+
+
+
+
+
+
+
 
     local target_spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
     local custom_spec_path = SPECS_DIR .. "/" .. rpm_name .. ".spec"
