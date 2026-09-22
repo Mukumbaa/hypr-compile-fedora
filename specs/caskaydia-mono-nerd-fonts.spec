@@ -29,8 +29,9 @@ containing a high number of glyphs (icons) for developer tools.
 
 %install
 install -m 0755 -d %{buildroot}%{_datadir}/fonts/caskaydia-mono
-install -m 0644 *.ttf %{buildroot}%{_datadir}/fonts/caskaydia-mono/ 2>/dev/null || true
-install -m 0644 *.otf %{buildroot}%{_datadir}/fonts/caskaydia-mono/ 2>/dev/null || true
+# Trova e sposta solo i file .ttf e .otf evitando di copiare eventuali sottocartelle
+find . -name "*.ttf" -exec install -m 0644 {} %{buildroot}%{_datadir}/fonts/caskaydia-mono/ \;
+find . -name "*.otf" -exec install -m 0644 {} %{buildroot}%{_datadir}/fonts/caskaydia-mono/ \;
 
 %files
 %{_datadir}/fonts/caskaydia-mono/
