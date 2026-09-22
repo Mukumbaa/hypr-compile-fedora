@@ -115,6 +115,7 @@ local all_modules = {
   { url = "https://github.com/sxyazi/yazi.git",                        dir = "yazi",                        build_reqs = "cargo rustc", core_deps = {} },
   { url = "https://github.com/kovidgoyal/kitty.git",                   dir = "kitty",                       build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo", core_deps = {} },
 { url = "https://github.com/yorukot/superfile.git", dir = "superfile", build_reqs = "", core_deps = {} },
+{ url = "https://github.com/ryanoasis/nerd-fonts", dir = "caskaydia-mono-nerd-fonts", build_reqs = "unzip", core_deps = {} },
 }
 
 
