@@ -351,14 +351,14 @@ print("RPM saved in: " .. RESULTS_DIR)
 -- GENERAZIONE METAPACCHETTO hyprland-desktop
 --------------------------------------------------------------------------------
 print("\n============================================================")
-print("--> Generazione Metapacchetto hyprland-desktop...")
+print("--> Generazione Metapacchetto all-hyprland-desktop...")
 print("============================================================")
 
-local meta_spec = RPMBUILD_DIR .. "/SPECS/hyprland-desktop.spec"
+local meta_spec = RPMBUILD_DIR .. "/SPECS/all-hyprland-desktop.spec"
 local meta_f = io.open(meta_spec, "w")
 
 meta_f:write(string.format([[
-Name:           hyprland-desktop
+Name:           all-hyprland-desktop
 Version:        1.0
 Release:        1%%{?dist}
 Summary:        Complete Hyprland Desktop Environment Suite
@@ -374,6 +374,7 @@ Requires:       hyprlock
 Requires:       hyprpicker
 Requires:       quickshell
 Requires:       yazi
+Requires:       superfile
 
 %%description
 Meta-package to install the complete Hyprland desktop environment suite.
@@ -388,4 +389,4 @@ Meta-package to install the complete Hyprland desktop environment suite.
 meta_f:close()
 
 run("rpmbuild -bb " .. meta_spec)
-run("cp -f " .. RPMBUILD_DIR .. "/RPMS/noarch/hyprland-desktop-*.rpm " .. RESULTS_DIR .. "/")
+run("cp -f " .. RPMBUILD_DIR .. "/RPMS/noarch/all-hyprland-desktop-*.rpm " .. RESULTS_DIR .. "/")
