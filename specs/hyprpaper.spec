@@ -1,6 +1,6 @@
 Name:           hyprpaper
 Version:        %{?module_version}%{!?module_version:0.8.4}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Blazing fast wayland wallpaper utility with IPC controls
 
 # LICENSE: BSD-3-Clause

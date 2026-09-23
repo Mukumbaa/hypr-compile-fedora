@@ -1,6 +1,6 @@
 Name:           hyprgraphics
 Version:        %{?module_version}%{!?module_version:0.5.1}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Hyprland graphics / resource utilities
 
 License:        BSD-3-Clause

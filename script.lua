@@ -340,7 +340,7 @@ for index, module in ipairs(modules_to_compile) do
     print(string.format("\n%s[+] No valid RPM found for %s (version or dependencies changed).%s", C.yellow, rpm_name, C.reset))
 
     local build_time = os.date("%Y%m%d%H%M")
-    local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
+    local rpm_release = string.format("1.%s_%s%%{?dist}", build_time, deps_hash)
     print(string.format("%s--> Generating new build Release: %s%s", C.yellow, rpm_release, C.reset))
 
     tarball_name = ""

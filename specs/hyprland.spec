@@ -1,6 +1,6 @@
 Name:           hyprland
 Version:        %{?module_version}%{!?module_version:0.56.2}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Dynamic tiling Wayland compositor that doesn't sacrifice on its looks
 
 License:        BSD-3-Clause AND BSD-2-Clause AND HPND-sell-variant AND LGPL-2.1-or-later

@@ -1,6 +1,6 @@
 Name:           kitty
 Version:        %{?module_version}%{!?module_version:0.49.0}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Cross-platform, fast, feature full, GPU based terminal emulator
 
 License:        GPL-3.0-only AND LGPL-2.1-or-later AND Zlib AND (MIT AND CC0-1.0) AND BSD-2-Clause AND CC0-1.0

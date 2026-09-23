@@ -1,6 +1,6 @@
 Name:           hyprwayland-scanner
 Version:        %{?module_version}%{!?module_version:0.4.6}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        A Hyprland implementation of wayland-scanner, in and for C++
 
 License:        BSD-3-Clause

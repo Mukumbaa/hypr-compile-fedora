@@ -1,6 +1,6 @@
 Name:           hyprcursor
 Version:        %{?module_version}%{!?module_version:0.1.13}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        The hyprland cursor format, library and utilities
 
 License:        BSD-3-Clause

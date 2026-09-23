@@ -1,6 +1,6 @@
 Name:           hyprtoolkit
 Version:        %{?module_version}%{!?module_version:0.6.0}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        A modern C++ Wayland-native GUI toolkit
 
 License:        BSD-3-Clause

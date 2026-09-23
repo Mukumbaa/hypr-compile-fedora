@@ -2,7 +2,7 @@
 
 Name:               quickshell
 Version:            %{?module_version}%{!?module_version:0.3.1}
-Release:            %{?module_release}%{!?module_release:1%{?dist}}
+Release:            %{?module_release}%{!?module_release:1}%{?dist}
 Summary:            Flexible QtQuick based desktop shell toolkit
 
 License:            LGPL-3.0-only AND GPL-3.0-only

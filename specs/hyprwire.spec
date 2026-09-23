@@ -1,6 +1,6 @@
 Name:           hyprwire
 Version:        %{?module_version}%{!?module_version:0.3.1}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Hyprland wire protocol library
 
 License:        BSD-3-Clause

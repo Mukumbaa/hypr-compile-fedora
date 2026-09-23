@@ -3,7 +3,7 @@
 
 Name:           superfile
 Version:        %{?module_version}%{!?module_version:1.6.0}
-Release:        %{?module_release}%{!?module_release:1%{?dist}}
+Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Pretty fancy and modern terminal file manager
 
 License:        MIT
