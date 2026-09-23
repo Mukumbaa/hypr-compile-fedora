@@ -366,7 +366,7 @@ for index, module in ipairs(modules_to_compile) do
 
 Name:           %s
 Version:        %%{?module_version}%%{!?module_version:%s}
-Release:        %{?module_release}%{!?module_release:1}%{?dist}
+Release:        %{?module_release}%{!?module_release:1}%%{?dist}
 Summary:        Native build for %s
 License:        GPL/MIT/BSD
 Source0:        %s
