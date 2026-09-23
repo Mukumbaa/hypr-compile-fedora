@@ -164,7 +164,7 @@ local function install_pkg_and_deps(dir_name, depth, visited)
 
   local rpm_name = dir_name:lower()
   local indent = string.rep("  ", depth - 1)
-  print(string.format("\n%s%s ↳ 📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s%s", C.blue, indent, dir_name, C.reset))
+  print(string.format("\n%s📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s%s", C.blue, dir_name, C.reset))
   run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
   run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
 end
@@ -213,7 +213,7 @@ local total_modules = #modules_to_compile
 for index, module in ipairs(modules_to_compile) do
   print("\n")
   print(C.cyan .. "╔════════════════════════════════════════════════════════════╗" .. C.reset)
-  print(string.format("%s║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s ║%s", C.cyan, index, total_modules, module.dir, C.reset))
+  print(string.format("%s║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s %s", C.cyan, index, total_modules, module.dir, C.reset))
   print(C.cyan .. "╚════════════════════════════════════════════════════════════╝" .. C.reset)
 
   -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
