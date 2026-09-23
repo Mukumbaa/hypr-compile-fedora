@@ -144,8 +144,7 @@ local function find_module_by_dir(dir_name)
 end
 
 -- Funzione ricorsiva con cache anti-duplicati (visited)
-local function install_pkg_and_deps(dir_name, depth, visited)
-  depth = depth or 1
+local function install_pkg_and_deps(dir_name, visited)
   visited = visited or {}
 
   -- Se il pacchetto è già stato gestito in questa catena, lo saltiamo
@@ -158,12 +157,11 @@ local function install_pkg_and_deps(dir_name, depth, visited)
   -- Prima risolve le dipendenze figlie
   if mod.core_deps and #mod.core_deps > 0 then
     for _, dep in ipairs(mod.core_deps) do
-      install_pkg_and_deps(dep, depth + 1, visited)
+      install_pkg_and_deps(dep, visited)
     end
   end
 
   local rpm_name = dir_name:lower()
-  local indent = string.rep("  ", depth - 1)
   print(string.format("\n%s📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s%s", C.blue, dir_name, C.reset))
   run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
   run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
@@ -221,7 +219,7 @@ for index, module in ipairs(modules_to_compile) do
     print(string.format("%s--> 🔄 Avvio catena di dipendenze ricorsive per %s...%s", C.yellow, module.dir, C.reset))
     local visited_chain = {}
     for _, dep in ipairs(module.core_deps) do
-      install_pkg_and_deps(dep, 1, visited_chain)
+      install_pkg_and_deps(dep, visited_chain)
     end
   end
 
