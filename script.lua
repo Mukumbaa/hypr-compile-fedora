@@ -162,7 +162,7 @@ local function install_pkg_and_deps(dir_name, visited)
   end
 
   local rpm_name = dir_name:lower()
-  print(string.format("\n%s📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s%s", C.blue, dir_name, C.reset))
+  print(string.format("\n%s 📦 [Dep-Tree] Resolving dependency: %s%s", C.blue, dir_name, C.reset))
   run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
   run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", RESULTS_DIR, rpm_name))
 end
@@ -210,13 +210,13 @@ local total_modules = #modules_to_compile
 
 for index, module in ipairs(modules_to_compile) do
   print("\n")
-  print(C.cyan .. "╔════════════════════════════════════════════════════════════╗" .. C.reset)
-  print(string.format("%s║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s %s", C.cyan, index, total_modules, module.dir, C.reset))
-  print(C.cyan .. "╚════════════════════════════════════════════════════════════╝" .. C.reset)
+  print(C.cyan .. "==============================================================" .. C.reset)
+  print(string.format("%s PROGRESS: [%2d / %2d]  ──>  Processing: %-18s %s", C.cyan, index, total_modules, module.dir, C.reset))
+  print(C.cyan .. "==============================================================" .. C.reset)
 
   -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
   if module.core_deps and #module.core_deps > 0 then
-    print(string.format("%s--> 🔄 Avvio catena di dipendenze ricorsive per %s...%s", C.yellow, module.dir, C.reset))
+    print(string.format("%s--> 🔄 Starting recursive dependency chain for %s...%s", C.yellow, module.dir, C.reset))
     local visited_chain = {}
     for _, dep in ipairs(module.core_deps) do
       install_pkg_and_deps(dep, visited_chain)
@@ -229,7 +229,7 @@ for index, module in ipairs(modules_to_compile) do
   local specific_reqs = module.build_reqs or ""
 
   if specific_reqs ~= "" then
-    print(string.format("%s--> 📥 Installazione requisiti di build per %s...%s", C.yellow, module.dir, C.reset))
+    print(string.format("%s--> 📥 Installation build requirements for %s...%s", C.yellow, module.dir, C.reset))
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
 
@@ -274,17 +274,17 @@ for index, module in ipairs(modules_to_compile) do
   h_check:close()
 
   if existing_rpm ~= "" then
-    print(string.format("\n%s[=] MATCH PERFETTO: RPM già esistente con la stessa versione e dipendenze identiche!%s", C.green, C.reset))
-    print(string.format("%s--> Salto compilazione e installo: %s%s", C.green, existing_rpm, C.reset))
+    print(string.format("\n%s[=] MATCH: Existing RPM with the same version and identical dependencies%s", C.green, C.reset))
+    print(string.format("%s--> Skip compilation and install: %s%s", C.green, existing_rpm, C.reset))
     run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   else
-    print(string.format("\n%s[+] Nessun RPM valido trovato per %s (versione o dipendenze cambiate).%s", C.yellow, rpm_name, C.reset))
+    print(string.format("\n%s[+] No valid RPM found for %s (version or dependencies changed).%s", C.yellow, rpm_name, C.reset))
 
     local build_time = os.date("%Y%m%d%H%M")
     local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
     print(string.format("%s--> Generating new build Release: %s%s", C.yellow, rpm_release, C.reset))
 
-    local tarball_name = ""
+    tarball_name = ""
     if module.dir == "caskaydia-mono-nerd-fonts" then
       tarball_name = "CascadiaMono.zip"
     else
@@ -298,10 +298,10 @@ for index, module in ipairs(modules_to_compile) do
     local custom_spec_file = io.open(custom_spec_path, "r")
     if custom_spec_file then
       custom_spec_file:close()
-      print(string.format("%s--> [!] Trovato .spec personalizzato in: %s%s", C.magenta, custom_spec_path, C.reset))
+      print(string.format("%s--> [!] Found custom .spec in: %s%s", C.magenta, custom_spec_path, C.reset))
       run(string.format("cp -f %s %s", custom_spec_path, target_spec_file))
     else
-      print(string.format("%s--> Generazione .spec generico in corso...%s", C.yellow, C.reset))
+      print(string.format("%s--> Generating generic .spec file......%s", C.yellow, C.reset))
       local spec_content = string.format([[
 %%global debug_package %%{nil}
 
@@ -369,13 +369,13 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
       f:close()
     end
 
-    print(string.format("%s--> Compilazione RPM in corso...%s", C.yellow, C.reset))
+    print(string.format("%s--> RPM compilation in progress...%s", C.yellow, C.reset))
     run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag, module_version, rpm_release, tarball_name, target_spec_file))
 
     run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
-    print(string.format("%s--> Test di installazione pacchetto nel sistema...%s", C.yellow, C.reset))
+    print(string.format("%s--> System package installation test...%s", C.yellow, C.reset))
     run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   end
 end
@@ -389,7 +389,7 @@ print("RPM saved in: " .. RESULTS_DIR)
 -- GENERAZIONE METAPACCHETTO hyprland-desktop
 --------------------------------------------------------------------------------
 print(string.format("\n%s============================================================%s", C.magenta, C.reset))
-print(C.bold .. "--> Generazione Metapacchetto all-hyprland-desktop..." .. C.reset)
+print(C.bold .. "--> Generation of the all-hyprland-desktop metapackage..." .. C.reset)
 print(string.format("%s============================================================%s", C.magenta, C.reset))
 
 local meta_spec = RPMBUILD_DIR .. "/SPECS/all-hyprland-desktop.spec"
