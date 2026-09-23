@@ -24,7 +24,7 @@ local function run(cmd)
   print(C.cyan .. "Executing: " .. C.reset .. cmd:match("([^\n]+)"))
   print(string.format("%s------------------------------------------------------------%s", C.gray, C.reset))
 
-  local success, _, code = os.execute(cmd)
+  local success, _, _ = os.execute(cmd)
   local failed = false
   if type(success) == "number" and success ~= 0 then failed = true end
   if success == nil or success == false then failed = true end
@@ -43,9 +43,21 @@ local function resolve_dep_version(dep_dir)
     return compiled_versions[dep_dir]
   end
 
-  local h = io.popen(string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower()))
-  local rpm_path = h:read("*a"):gsub("%s+", "")
-  h:close()
+  -- local h = io.popen(string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower()))
+  -- local rpm_path = h:read("*a"):gsub("%s+", "")
+  -- h:close()
+  local rpm_path = ""
+  local cmd = string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", RESULTS_DIR, dep_dir:lower())
+  local h = io.popen(cmd)
+
+  if h then
+      local content = h:read("*a")
+      h:close()
+
+      if content then
+          rpm_path = content:gsub("%s+", "")
+      end
+  end
 
   if rpm_path ~= "" then
     local ver = rpm_path:match(dep_dir:lower() .. "%-(%d+[%d%.]*)%-")
@@ -62,9 +74,23 @@ local function get_deps_hash(deps_list)
   for _, dep_dir in ipairs(deps_list) do
     str = str .. dep_dir .. "=" .. resolve_dep_version(dep_dir) .. ";"
   end
-  local h = io.popen(string.format("echo -n '%s' | md5sum | cut -c1-7", str))
-  local hash = h:read("*a"):gsub("%s+", "")
-  h:close()
+  -- local h = io.popen(string.format("echo -n '%s' | md5sum | cut -c1-7", str))
+  -- local hash = h:read("*a"):gsub("%s+", "")
+  -- h:close()
+  local hash = ""
+  local cmd = string.format("echo -n '%s' | md5sum | cut -c1-7", str)
+  local h = io.popen(cmd)
+
+  if h then
+      local content = h:read("*a")
+      h:close()
+
+      if content then
+          hash = content:gsub("%s+", "")
+      end
+  end
+
+
   return hash
 end
 
@@ -88,7 +114,9 @@ print("  0) Unlimited / System Default")
 io.write(C.cyan .. "Choose option [1]: " .. C.reset)
 local job_choice = io.read("*l")
 
+---@type string|nil
 local num_jobs = "2"
+
 if job_choice == "2" then
   num_jobs = "4"
 elseif job_choice == "3" then
@@ -195,11 +223,28 @@ else
   if #modules_to_compile == 0 then modules_to_compile = all_modules end
 end
 
+-- local function get_pkg_version(repo_dir)
+--   local cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
+--   local h = io.popen(cmd)
+--   local ver = h:read("*a"):gsub("%s+", "")
+--   h:close()
+--
+--   ver = ver:gsub("^v", ""):gsub("-", ".")
+--   return (ver ~= "" and ver) or "0.0.0"
+-- end
 local function get_pkg_version(repo_dir)
   local cmd = string.format("cd %s && (git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1 || git tag -l | sort -V | tail -n 1 || echo '0.0.0')", repo_dir)
   local h = io.popen(cmd)
-  local ver = h:read("*a"):gsub("%s+", "")
-  h:close()
+  local ver = ""
+
+  if h then
+    local content = h:read("*a")
+    h:close()
+
+    if content then
+      ver = content:gsub("%s+", "")
+    end
+  end
 
   ver = ver:gsub("^v", ""):gsub("-", ".")
   return (ver ~= "" and ver) or "0.0.0"
@@ -268,10 +313,24 @@ for index, module in ipairs(modules_to_compile) do
   local deps_hash = get_deps_hash(module.core_deps)
 
   -- Controllo RPM con supporto agli hash dinamici e preesistenti
+  -- local search_pattern = string.format("%s-%s-1.*.rpm", rpm_name, module_version)
+  -- local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | grep '_%s' | head -n 1", RESULTS_DIR, search_pattern, deps_hash))
+  -- local existing_rpm = h_check:read("*a"):gsub("%s+", "")
+  -- h_check:close()
   local search_pattern = string.format("%s-%s-1.*.rpm", rpm_name, module_version)
-  local h_check = io.popen(string.format("ls %s/%s 2>/dev/null | grep '_%s' | head -n 1", RESULTS_DIR, search_pattern, deps_hash))
-  local existing_rpm = h_check:read("*a"):gsub("%s+", "")
-  h_check:close()
+  local cmd = string.format("ls %s/%s 2>/dev/null | grep '_%s' | head -n 1", RESULTS_DIR, search_pattern, deps_hash)
+  local h_check = io.popen(cmd)
+  local existing_rpm = ""
+
+  if h_check then
+      local content = h_check:read("*a")
+      h_check:close()
+
+      if content then
+          existing_rpm = content:gsub("%s+", "")
+      end
+  end
+
 
   if existing_rpm ~= "" then
     print(string.format("\n%s[=] MATCH: Existing RPM with the same version and identical dependencies%s", C.green, C.reset))
@@ -365,8 +424,13 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
       spec_content = spec_content:gsub("\n%s+(%%)", "\n%%"):gsub("^%s+(%%)", "%%")
 
       local f = io.open(target_spec_file, "w")
-      f:write(spec_content)
-      f:close()
+      if f then
+          f:write(spec_content)
+          f:close()
+      else
+          -- Opzionale: puoi gestire l'errore qui se necessario
+          error("Unable to open the file for writing: " .. tostring(target_spec_file))
+      end
     end
 
     print(string.format("%s--> RPM compilation in progress...%s", C.yellow, C.reset))
@@ -395,7 +459,8 @@ print(string.format("%s=========================================================
 local meta_spec = RPMBUILD_DIR .. "/SPECS/all-hyprland-desktop.spec"
 local meta_f = io.open(meta_spec, "w")
 
-meta_f:write(string.format([[
+if meta_f then
+    meta_f:write(string.format([[
 Name:           all-hyprland-desktop
 Version:        1.0
 Release:        1%%{?dist}
@@ -424,7 +489,10 @@ Meta-package to install the complete Hyprland desktop environment suite.
 - Initial meta-package release
 ]], changelog_date))
 
-meta_f:close()
+    meta_f:close()
+else
+    error("Unable to open the file for writing: " .. tostring(meta_spec))
+end
 
 run("rpmbuild -bb " .. meta_spec)
 run("cp -f " .. RPMBUILD_DIR .. "/RPMS/noarch/all-hyprland-desktop-*.rpm " .. RESULTS_DIR .. "/")
