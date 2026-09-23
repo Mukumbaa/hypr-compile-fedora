@@ -143,15 +143,22 @@ local function find_module_by_dir(dir_name)
   return nil
 end
 
--- Funzione ricorsiva con log visivo colorato per le dipendenze
-local function install_pkg_and_deps(dir_name, depth)
+-- Funzione ricorsiva con cache anti-duplicati (visited)
+local function install_pkg_and_deps(dir_name, depth, visited)
   depth = depth or 1
+  visited = visited or {}
+
+  -- Se il pacchetto è già stato gestito in questa catena, lo saltiamo
+  if visited[dir_name] then return end
+  visited[dir_name] = true
+
   local mod = find_module_by_dir(dir_name)
   if not mod then return end
 
+  -- Prima risolve le dipendenze figlie
   if mod.core_deps and #mod.core_deps > 0 then
     for _, dep in ipairs(mod.core_deps) do
-      install_pkg_and_deps(dep, depth + 1)
+      install_pkg_and_deps(dep, depth + 1, visited)
     end
   end
 
