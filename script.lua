@@ -130,21 +130,22 @@ local function find_module_by_dir(dir_name)
   return nil
 end
 
--- Funzione ricorsiva semplice per installare un pacchetto e le sue dipendenze a catena
-local function install_pkg_and_deps(dir_name)
+-- Funzione ricorsiva con log visivo chiaro per le dipendenze
+local function install_pkg_and_deps(dir_name, depth)
+  depth = depth or 1
   local mod = find_module_by_dir(dir_name)
   if not mod then return end
 
-  -- Se ha dipendenze core, le chiama ricorsivamente PRIMA di installare se stesso
+  -- Se ha dipendenze core, le chiama ricorsivamente PRIMA
   if mod.core_deps and #mod.core_deps > 0 then
     for _, dep in ipairs(mod.core_deps) do
-      install_pkg_and_deps(dep)
+      install_pkg_and_deps(dep, depth + 1)
     end
   end
 
-  -- Nessuna dipendenza (o dipendenze già installate/risolite): installa il pacchetto corrente
   local rpm_name = dir_name:lower()
-  print(string.format("--> [Ricursione] Installazione di %s e relativi pacchetti da /output...", dir_name))
+  local indent = string.rep("  ", depth - 1)
+  print(string.format("\n%s ↳ 📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s", indent, dir_name))
   run(string.format("dnf install -y --allowerasing %s/%s-*.rpm %s/%s-devel-*.rpm 2>/dev/null || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
 end
 
@@ -194,16 +195,19 @@ local changelog_date = os.date("%a %b %d %Y")
 -- print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
 -- run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
 
-for _, module in ipairs(modules_to_compile) do
-  print("\n============================================================")
-  print("--> Processing: " .. module.dir)
-  print("============================================================")
+local total_modules = #modules_to_compile
+
+for index, module in ipairs(modules_to_compile) do
+  print("\n")
+  print("╔════════════════════════════════════════════════════════════╗")
+  print(string.format("║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s ║", index, total_modules, module.dir))
+  print("╚════════════════════════════════════════════════════════════╝")
 
   -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
   if module.core_deps and #module.core_deps > 0 then
-    print("--> Avvio risoluzione ricorsiva delle dipendenze per " .. module.dir .. "...")
+    print(string.format("--> 🔄 Avvio catena di dipendenze ricorsive per %s...", module.dir))
     for _, dep in ipairs(module.core_deps) do
-      install_pkg_and_deps(dep)
+      install_pkg_and_deps(dep, 1)
     end
   end
 
@@ -213,8 +217,11 @@ for _, module in ipairs(modules_to_compile) do
   local specific_reqs = module.build_reqs or ""
 
   if specific_reqs ~= "" then
+    print(string.format("--> 📥 Installazione requisiti di build per %s...", module.dir))
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
+
+  -- Resto della logica (Git / Zip / Compilazione RPM)...
 
   -- run(string.format("git clone --recursive %s %s", module.url, module_src))
   --
