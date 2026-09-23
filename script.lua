@@ -5,10 +5,24 @@ local RESULTS_DIR = "/output"
 local RPMBUILD_DIR = "/root/rpmbuild"
 local SPECS_DIR = "specs"
 
+-- Definizioni codici colore ANSI
+local C = {
+  reset   = "\27[0m",
+  bold    = "\27[1m",
+  red     = "\27[31m",
+  green   = "\27[32m",
+  yellow  = "\27[33m",
+  blue    = "\27[34m",
+  magenta = "\27[35m",
+  cyan    = "\27[36m",
+  white   = "\27[37m",
+  gray    = "\27[90m"
+}
+
 local function run(cmd)
-  print("\n------------------------------------------------------------")
-  print("Executing: " .. cmd:match("([^\n]+)"))
-  print("------------------------------------------------------------")
+  print(string.format("\n%s------------------------------------------------------------%s", C.gray, C.reset))
+  print(C.cyan .. "Executing: " .. C.reset .. cmd:match("([^\n]+)"))
+  print(string.format("%s------------------------------------------------------------%s", C.gray, C.reset))
 
   local success, _, code = os.execute(cmd)
   local failed = false
@@ -16,7 +30,7 @@ local function run(cmd)
   if success == nil or success == false then failed = true end
 
   if failed then
-    print("\n[!] FATAL ERROR executing command:\n" .. cmd)
+    print(string.format("\n%s[!] FATAL ERROR executing command:%s\n%s", C.red, C.reset, cmd))
     os.exit(1)
   end
 end
@@ -58,20 +72,20 @@ end
 run(string.format("rm -rf %s && mkdir -p %s %s", WORK_DIR, WORK_DIR, RESULTS_DIR))
 run(string.format("mkdir -p %s/{BUILD,RPMS,SOURCES,SPECS,SRPMS}", RPMBUILD_DIR))
 
-print("--> Installing base tools...")
+print(C.yellow .. "--> Installing base tools..." .. C.reset)
 run("dnf install -y gcc-c++ cmake meson ninja-build git tar rpm-build pkgconf-pkg-config")
 
 --------------------------------------------------------------------------------
 -- CONFIGURAZIONE JOB PARALLELI
 --------------------------------------------------------------------------------
-print("\n============================================================")
-print("COMPILATION THREADS / RAM MANAGEMENT")
-print("============================================================")
+print(string.format("\n%s============================================================%s", C.magenta, C.reset))
+print(C.bold .. "COMPILATION THREADS / RAM MANAGEMENT" .. C.reset)
+print(string.format("%s============================================================%s", C.magenta, C.reset))
 print("  1) Limit to 2 jobs (<8GB RAM) [Default]")
 print("  2) Limit to 4 jobs (8-16GB RAM)")
 print("  3) Custom number of jobs")
 print("  0) Unlimited / System Default")
-io.write("Choose option [1]: ")
+io.write(C.cyan .. "Choose option [1]: " .. C.reset)
 local job_choice = io.read("*l")
 
 local num_jobs = "2"
@@ -91,7 +105,7 @@ if num_jobs then
   rpmbuild_jobs_flag = string.format("--define '_smp_mflags -j%s'", num_jobs)
   env_jobs_macro = string.format("export NINJA_JOBS=%s\nexport MAKEFLAGS='-j%s'\nexport CARGO_BUILD_JOBS=%s", num_jobs, num_jobs, num_jobs)
 else
-  print("--> Warning: Using default system threads.")
+  print(C.yellow .. "--> Warning: Using default system threads." .. C.reset)
 end
 
 local all_modules = {
@@ -114,10 +128,9 @@ local all_modules = {
   { url = "https://github.com/outfoxxed/quickshell.git",               dir = "quickshell",                  extra_args = "-DVENDOR_CPPTRACE=ON -DINSTALL_QML_PREFIX=lib64/qt6/qml", build_reqs = "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtwayland-devel qt6-qtshadertools-devel qt6-qtsvg-devel cli11-devel jemalloc-devel pipewire-devel libdrm-devel mesa-libGL-devel vulkan-headers polkit-devel libxcb-devel libunwind-devel libdwarf-devel", core_deps = {} },
   { url = "https://github.com/sxyazi/yazi.git",                        dir = "yazi",                        build_reqs = "cargo rustc", core_deps = {} },
   { url = "https://github.com/kovidgoyal/kitty.git",                   dir = "kitty",                       build_reqs = "golang python3-devel ncurses libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libxkbcommon-devel dbus-devel fontconfig harfbuzz-devel zlib-devel slang slang-devel xxhash-devel openssl-devel libxkbcommon-x11-devel simde-devel vulkan-headers vulkan-loader-devel python3-sphinx python3-sphinx-copybutton python3-sphinx-inline-tabs python3-sphinxext-opengraph python3-sphinx-design python3-sphinx-theme-furo", core_deps = {} },
-{ url = "https://github.com/yorukot/superfile.git", dir = "superfile", build_reqs = "", core_deps = {} },
-{ url = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaMono.zip", dir = "caskaydia-mono-nerd-fonts", build_reqs = "unzip", core_deps = {} },
+  { url = "https://github.com/yorukot/superfile.git",                  dir = "superfile",                   build_reqs = "", core_deps = {} },
+  { url = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaMono.zip", dir = "caskaydia-mono-nerd-fonts", build_reqs = "unzip", core_deps = {} },
 }
-
 
 -- Funzione per trovare la definizione di un modulo dato il suo nome di directory
 local function find_module_by_dir(dir_name)
@@ -130,13 +143,12 @@ local function find_module_by_dir(dir_name)
   return nil
 end
 
--- Funzione ricorsiva con log visivo chiaro per le dipendenze
+-- Funzione ricorsiva con log visivo colorato per le dipendenze
 local function install_pkg_and_deps(dir_name, depth)
   depth = depth or 1
   local mod = find_module_by_dir(dir_name)
   if not mod then return end
 
-  -- Se ha dipendenze core, le chiama ricorsivamente PRIMA
   if mod.core_deps and #mod.core_deps > 0 then
     for _, dep in ipairs(mod.core_deps) do
       install_pkg_and_deps(dep, depth + 1)
@@ -145,33 +157,30 @@ local function install_pkg_and_deps(dir_name, depth)
 
   local rpm_name = dir_name:lower()
   local indent = string.rep("  ", depth - 1)
-  print(string.format("\n%s ↳ 📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s", indent, dir_name))
+  print(string.format("\n%s%s ↳ 📦 [Dep-Tree] Risoluzione ed installazione dipendenza: %s%s", C.blue, indent, dir_name, C.reset))
   run(string.format("dnf install -y --allowerasing %s/%s-*.rpm %s/%s-devel-*.rpm 2>/dev/null || true", RESULTS_DIR, rpm_name, RESULTS_DIR, rpm_name))
 end
 
-
-print("\n============================================================")
-print("PACKAGE SELECTION MENU")
-print("============================================================")
+print(string.format("\n%s============================================================%s", C.magenta, C.reset))
+print(C.bold .. "PACKAGE SELECTION MENU" .. C.reset)
+print(string.format("%s============================================================%s", C.magenta, C.reset))
 for i, mod in ipairs(all_modules) do
-  print(string.format(" %2d) %s", i, mod.dir))
+  print(string.format(" %s%2d)%s %s", C.yellow, i, C.reset, mod.dir))
 end
-print("  0) ALL PACKAGES (Default)")
-print("============================================================")
+print(C.green .. "  0) ALL PACKAGES (Default)" .. C.reset)
+print(string.format("%s============================================================%s", C.magenta, C.reset))
 
-io.write("Enter numbers or 0 for ALL [0]: ")
+io.write(C.cyan .. "Enter numbers or 0 for ALL [0]: " .. C.reset)
 local ans_pkgs = io.read("*l")
 
 local modules_to_compile = {}
 if ans_pkgs == "" or ans_pkgs:match("^%s*0%s*$") or ans_pkgs:lower():match("all") then
   modules_to_compile = all_modules
 else
-  -- Controlla se è stato inserito un numero singolo esatto (es. 20)
   local single_idx = tonumber(ans_pkgs)
   if single_idx and all_modules[single_idx] then
     table.insert(modules_to_compile, all_modules[single_idx])
   else
-    -- Altrimenti gestisce eventuali liste separate da spazi (es. "1 3 5")
     for num_str in ans_pkgs:gmatch("%d+") do
       local idx = tonumber(num_str)
       if idx and all_modules[idx] then table.insert(modules_to_compile, all_modules[idx]) end
@@ -191,21 +200,17 @@ local function get_pkg_version(repo_dir)
 end
 
 local changelog_date = os.date("%a %b %d %Y")
-
--- print("\n--> Ripristino pacchetti già compilati da /output (escluso metapacchetto)...")
--- run("find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*' | grep -q . && dnf install -y --allowerasing $(find /output -maxdepth 1 -name '*.rpm' ! -name 'hyprland-desktop*') || true")
-
 local total_modules = #modules_to_compile
 
 for index, module in ipairs(modules_to_compile) do
   print("\n")
-  print("╔════════════════════════════════════════════════════════════╗")
-  print(string.format("║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s ║", index, total_modules, module.dir))
-  print("╚════════════════════════════════════════════════════════════╝")
+  print(C.cyan .. "╔════════════════════════════════════════════════════════════╗" .. C.reset)
+  print(string.format("%s║ PROGRESSO: [%2d / %2d]  ──>  Elaborazione: %-18s ║%s", C.cyan, index, total_modules, module.dir, C.reset))
+  print(C.cyan .. "╚════════════════════════════════════════════════════════════╝" .. C.reset)
 
   -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
   if module.core_deps and #module.core_deps > 0 then
-    print(string.format("--> 🔄 Avvio catena di dipendenze ricorsive per %s...", module.dir))
+    print(string.format("%s--> 🔄 Avvio catena di dipendenze ricorsive per %s...%s", C.yellow, module.dir, C.reset))
     for _, dep in ipairs(module.core_deps) do
       install_pkg_and_deps(dep, 1)
     end
@@ -217,30 +222,9 @@ for index, module in ipairs(modules_to_compile) do
   local specific_reqs = module.build_reqs or ""
 
   if specific_reqs ~= "" then
-    print(string.format("--> 📥 Installazione requisiti di build per %s...", module.dir))
+    print(string.format("%s--> 📥 Installazione requisiti di build per %s...%s", C.yellow, module.dir, C.reset))
     run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
   end
-
-  -- Resto della logica (Git / Zip / Compilazione RPM)...
-
-  -- run(string.format("git clone --recursive %s %s", module.url, module_src))
-  --
-  -- local checkout_cmd = string.format([[
-  --   cd %s &&
-  --   LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
-  --   [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
-  --   if [ -n "$LATEST_TAG" ]; then
-  --     git checkout "$LATEST_TAG" 2>/dev/null
-  --     git submodule update --init --recursive
-  --   fi
-  -- ]], module_src)
-  -- run(checkout_cmd)
-  --
-  -- local module_version = get_pkg_version(module_src)
-  -- compiled_versions[module.dir] = module_version
-  -- print("--> Calculated Version: " .. module_version)
-
-
 
   local is_git = module.url:match("%.git$")
   local module_version = "0.0.0"
@@ -267,18 +251,12 @@ for index, module in ipairs(modules_to_compile) do
     run(string.format("mkdir -p %s", module_src))
     module_version = "3.3.0"
     tarball_name = "CascadiaMono.zip"
-    print("--> Download diretto di " .. module.url .. " in SOURCES...")
+    print(string.format("%s--> Download diretto di %s in SOURCES...%s", C.yellow, module.url, C.reset))
     run(string.format("curl -L -fLo %s/SOURCES/%s %s", RPMBUILD_DIR, tarball_name, module.url))
   end
 
   compiled_versions[module.dir] = module_version
-  print("--> Calculated Version: " .. module_version)
-
-
-
-
-
-
+  print(string.format("%s--> Calculated Version: %s%s", C.green, module_version, C.reset))
 
   local deps_hash = get_deps_hash(module.core_deps)
 
@@ -289,23 +267,15 @@ for index, module in ipairs(modules_to_compile) do
   h_check:close()
 
   if existing_rpm ~= "" then
-    print("\n[=] MATCH PERFETTO: RPM già esistente con la stessa versione e dipendenze identiche!")
-    print("--> Salto compilazione e installo: " .. existing_rpm)
+    print(string.format("\n%s[=] MATCH PERFETTO: RPM già esistente con la stessa versione e dipendenze identiche!%s", C.green, C.reset))
+    print(string.format("%s--> Salto compilazione e installo: %s%s", C.green, existing_rpm, C.reset))
     run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   else
-    print("\n[+] Nessun RPM valido trovato per " .. rpm_name .. " (versione o dipendenze cambiate).")
-
-    -- local build_time = os.date("%Y%m%d%H%M")
-    -- local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
-    -- print("--> Generating new build Release: " .. rpm_release)
-    --
-    -- local tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
-    -- run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
-
+    print(string.format("\n%s[+] Nessun RPM valido trovato per %s (versione o dipendenze cambiate).%s", C.yellow, rpm_name, C.reset))
 
     local build_time = os.date("%Y%m%d%H%M")
     local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
-    print("--> Generating new build Release: " .. rpm_release)
+    print(string.format("%s--> Generating new build Release: %s%s", C.yellow, rpm_release, C.reset))
 
     local tarball_name = ""
     if module.dir == "caskaydia-mono-nerd-fonts" then
@@ -315,23 +285,16 @@ for index, module in ipairs(modules_to_compile) do
       run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", RPMBUILD_DIR, tarball_name, module_src))
     end
 
-
-
-
-
-
-
-
     local target_spec_file = RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
     local custom_spec_path = SPECS_DIR .. "/" .. rpm_name .. ".spec"
 
     local custom_spec_file = io.open(custom_spec_path, "r")
     if custom_spec_file then
       custom_spec_file:close()
-      print("--> [!] Trovato .spec personalizzato in: " .. custom_spec_path)
+      print(string.format("%s--> [!] Trovato .spec personalizzato in: %s%s", C.magenta, custom_spec_path, C.reset))
       run(string.format("cp -f %s %s", custom_spec_path, target_spec_file))
     else
-      print("--> Generazione .spec generico in corso...")
+      print(string.format("%s--> Generazione .spec generico in corso...%s", C.yellow, C.reset))
       local spec_content = string.format([[
 %%global debug_package %%{nil}
 
@@ -399,28 +362,28 @@ sed -i -e 's|\(/share/man/.*\)|\1*|' %%{_builddir}/filelist.txt
       f:close()
     end
 
-    print("--> Compilazione RPM in corso...")
+    print(string.format("%s--> Compilazione RPM in corso...%s", C.yellow, C.reset))
     run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag, module_version, rpm_release, tarball_name, target_spec_file))
 
     run(string.format("rm -f %s/%s-*.rpm", RESULTS_DIR, rpm_name))
     run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", RPMBUILD_DIR, rpm_name, RESULTS_DIR))
 
-    print("--> Test di installazione pacchetto nel sistema...")
+    print(string.format("%s--> Test di installazione pacchetto nel sistema...%s", C.yellow, C.reset))
     run(string.format("dnf install -y --allowerasing %s/%s*.rpm", RESULTS_DIR, rpm_name))
   end
 end
 
-print("\n============================================================")
-print("SUCCESS")
-print("============================================================")
+print(string.format("\n%s============================================================%s", C.green, C.reset))
+print(C.bold .. C.green .. "SUCCESS" .. C.reset)
+print(string.format("%s============================================================%s", C.green, C.reset))
 print("RPM saved in: " .. RESULTS_DIR)
 
 --------------------------------------------------------------------------------
 -- GENERAZIONE METAPACCHETTO hyprland-desktop
 --------------------------------------------------------------------------------
-print("\n============================================================")
-print("--> Generazione Metapacchetto all-hyprland-desktop...")
-print("============================================================")
+print(string.format("\n%s============================================================%s", C.magenta, C.reset))
+print(C.bold .. "--> Generazione Metapacchetto all-hyprland-desktop..." .. C.reset)
+print(string.format("%s============================================================%s", C.magenta, C.reset))
 
 local meta_spec = RPMBUILD_DIR .. "/SPECS/all-hyprland-desktop.spec"
 local meta_f = io.open(meta_spec, "w")
