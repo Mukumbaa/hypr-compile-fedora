@@ -218,8 +218,9 @@ for index, module in ipairs(modules_to_compile) do
   -- INSTALLAZIONE RICORSIVA DELLE DIPENDENZE
   if module.core_deps and #module.core_deps > 0 then
     print(string.format("%s--> 🔄 Avvio catena di dipendenze ricorsive per %s...%s", C.yellow, module.dir, C.reset))
+    local visited_chain = {}
     for _, dep in ipairs(module.core_deps) do
-      install_pkg_and_deps(dep, 1)
+      install_pkg_and_deps(dep, 1, visited_chain)
     end
   end
 
