@@ -8,7 +8,7 @@ Summary:        The minimal, blazing-fast, and infinitely customizable prompt fo
 License:        ISC
 URL:            https://github.com/starship/starship
 # Evitiamo di dipendere dal tarball generato da lua, scarichiamo direttamente l'archivio ufficiale di starship
-Source0:        https://github.com/starship/starship/releases/download/v%{version}/starship-x86_64-unknown-linux-gnu.tar.gz
+Source0:        %{?source_tarball}%{!?source_tarball:starship-1.26.0.tar.gz}
 Source1:        https://raw.githubusercontent.com/starship/starship/v%{version}/docs/config/README.md
 
 Provides:       %{name} = %{version}-%{release}

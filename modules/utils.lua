@@ -170,9 +170,7 @@ function M.build_module(module, rpmbuild_jobs_flag, changelog_date)
     local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
     print(string.format("%s--> Generating new build Release: %s%s", C.yellow, rpm_release, C.reset))
 
-    if module.dir == "caskaydia-mono-nerd-fonts" then
-      tarball_name = "CascadiaMono.zip"
-    else
+    if module.dir ~= "caskaydia-mono-nerd-fonts" and module.dir ~= "starship" then
       tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
       M.run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", config.RPMBUILD_DIR, tarball_name, module_src))
     end
