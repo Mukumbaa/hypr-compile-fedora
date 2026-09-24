@@ -29,3 +29,5 @@ docker run --rm -it -v ~/Hyprland-RPM:/output hypr-builder
 - uwsm
 - quickshell
 - yazi
+- superfile
+- caskaydia-mono-nerd-fonts
