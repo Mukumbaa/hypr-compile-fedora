@@ -124,6 +124,7 @@ Requires:       hyprpicker
 Requires:       quickshell
 Requires:       yazi
 Requires:       superfile
+Requires:       starship
 
 %%description
 Meta-package to install the complete Hyprland desktop environment suite.
