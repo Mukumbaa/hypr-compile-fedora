@@ -7,9 +7,7 @@ Summary:        The minimal, blazing-fast, and infinitely customizable prompt fo
 
 License:        ISC
 URL:            https://github.com/starship/starship
-# Evitiamo di dipendere dal tarball generato da lua, scarichiamo direttamente l'archivio ufficiale di starship
 Source0:        %{?source_tarball}%{!?source_tarball:starship-1.26.0.tar.gz}
-Source1:        https://raw.githubusercontent.com/starship/starship/v%{version}/docs/config/README.md
 
 Provides:       %{name} = %{version}-%{release}
 
@@ -19,12 +17,11 @@ BuildRequires:  curl
 The minimal, blazing-fast, and infinitely customizable prompt for any shell!
 
 %prep
-# Estrae l'archivio binario ufficiale direttamente nella cartella di build
 %setup -q -c -n %{name}-%{version}
-cp %{SOURCE1} CONFIGURATION.md
+# Scarica la configurazione direttamente in fase di prep se necessaria, o crea un file vuoto/di fallback
+curl -sL https://raw.githubusercontent.com/starship/starship/v%{version}/docs/config/README.md -o CONFIGURATION.md || echo "Starship configuration" > CONFIGURATION.md
 
 %build
-# Ora l'eseguibile 'starship' è presente nella cartella estratta
 ./starship completions bash > starship.bash
 ./starship completions zsh > _starship
 
