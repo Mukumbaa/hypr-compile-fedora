@@ -31,3 +31,6 @@ docker run --rm -it -v ~/Hyprland-RPM:/output hypr-builder
 - yazi
 - superfile
 - caskaydia-mono-nerd-fonts
+
+
+.rpm in [this repo](https://github.com/Mukumbaa/Hyprland-RPM)
