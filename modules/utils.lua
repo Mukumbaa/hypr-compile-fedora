@@ -128,8 +128,18 @@ function M.build_module(module, rpmbuild_jobs_flag, changelog_date)
     M.run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", config.RPMBUILD_DIR, tarball_name, module_src))
   else
     M.run(string.format("mkdir -p %s", module_src))
-    module_version = "3.3.0"
-    tarball_name = "CascadiaMono.zip"
+
+    if module.dir == "caskaydia-mono-nerd-fonts" then
+      module_version = "3.3.0"
+      tarball_name = "CascadiaMono.zip"
+    elseif module.dir == "starship" then
+      module_version = "1.26.0" -- Puoi aggiornare la versione o estrarla dall'URL
+      tarball_name = "starship-1.26.0.tar.gz"
+    else
+      module_version = "1.0.0"
+      tarball_name = rpm_name .. "-" .. module_version .. ".tar.gz"
+    end
+
     print(string.format("%s--> Download diretto di %s in SOURCES...%s", C.yellow, module.url, C.reset))
     M.run(string.format("curl -L -fLo %s/SOURCES/%s %s", config.RPMBUILD_DIR, tarball_name, module.url))
   end
