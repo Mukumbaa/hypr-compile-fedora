@@ -1,3 +1,5 @@
+-- Forza la localizzazione temporale in formato standard inglese per evitare errori di data in RPM
+os.setlocale("C", "time")
 local C = require("modules.colors")
 local config = require("modules.config")
 local utils = require("modules.utils")
