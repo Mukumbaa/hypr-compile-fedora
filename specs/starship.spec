@@ -8,17 +8,19 @@ Summary:        The minimal, blazing-fast, and infinitely customizable prompt fo
 License:        ISC
 URL:            https://github.com/starship/starship
 Source0:        %{?source_tarball}%{!?source_tarball:%{name}-%{version}.tar.gz}
-Source1:        https://raw.githubusercontent.com/starship/starship/v%{version}/docs/config/README.md
 
 Provides:       %{name} = %{version}-%{release}
+
+BuildRequires:  curl
 
 %description
 The minimal, blazing-fast, and infinitely customizable prompt for any shell!
 
 %prep
-# Usiamo -n per dire a rpmbuild dove estrarre senza creare sottocartelle errate
 %setup -q -c -n %{name}-%{version}
-cp %{SOURCE1} CONFIGURATION.md
+
+# Scarica direttamente il README di configurazione da GitHub durante la preparazione
+curl -sL https://raw.githubusercontent.com/starship/starship/v%{version}/docs/config/README.md -o CONFIGURATION.md
 
 %build
 ./starship completions bash > starship.bash
