@@ -1,5 +1,3 @@
--- package.path = package.path .. ";./?.lua"
-
 local C = require("modules.colors")
 local config = require("modules.config")
 local utils = require("modules.utils")

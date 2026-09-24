@@ -223,11 +223,11 @@ function M.install_pkg_and_deps(dir_name, visited, rpmbuild_jobs_flag, changelog
 
   -- 3. Se esiste lo installa, altrimenti lo compila al volo!
   if rpm_exists then
-    print(string.format("\n%s 📦 [Dep-Tree] Installing existing dependency: %s%s", C.blue, dir_name, C.reset))
+    print(string.format("\n%s--> 📦 [Dep-Tree] Installing existing dependency: %s%s", C.blue, dir_name, C.reset))
     M.run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
     M.run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
   else
-    print(string.format("\n%s ⚠️ [Dep-Tree] Dependency package '%s' not found. Compiling on-the-fly...%s", C.yellow, dir_name, C.reset))
+    print(string.format("\n%s--> ⚠️ [Dep-Tree] Dependency package '%s' not found. Compiling on-the-fly...%s", C.yellow, dir_name, C.reset))
     M.build_module(mod, rpmbuild_jobs_flag, changelog_date)
   end
 end
