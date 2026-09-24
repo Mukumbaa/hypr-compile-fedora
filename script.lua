@@ -1,6 +1,4 @@
-#!/usr/bin/env lua
-
-package.path = package.path .. ";./?.lua"
+-- package.path = package.path .. ";./?.lua"
 
 local C = require("modules.colors")
 local config = require("modules.config")
@@ -81,110 +79,17 @@ for index, module in ipairs(modules_to_compile) do
   print(string.format("%s PROGRESS: [%2d / %2d]  ──>  Processing: %-18s %s", C.cyan, index, total_modules, module.dir, C.reset))
   print(C.cyan .. "==============================================================" .. C.reset)
 
+  -- Avvia la catena ricorsiva: se una dipendenza manca, viene compilata e installata automaticamente qui dentro
   if module.core_deps and #module.core_deps > 0 then
     print(string.format("%s--> 🔄 Starting recursive dependency chain for %s...%s", C.yellow, module.dir, C.reset))
     local visited_chain = {}
     for _, dep in ipairs(module.core_deps) do
-      utils.install_pkg_and_deps(dep, visited_chain)
+      utils.install_pkg_and_deps(dep, visited_chain, rpmbuild_jobs_flag, changelog_date)
     end
   end
 
-  local module_src = config.WORK_DIR .. "/" .. module.dir
-  local rpm_name = module.dir:lower()
-  local specific_reqs = module.build_reqs or ""
-
-  if specific_reqs ~= "" then
-    print(string.format("%s--> 📥 Installation build requirements for %s...%s", C.yellow, module.dir, C.reset))
-    utils.run(string.format("dnf install -y --skip-unavailable %s", specific_reqs))
-  end
-
-  local is_git = module.url:match("%.git$")
-  local module_version = "0.0.0"
-  local tarball_name = ""
-
-  if is_git then
-    utils.run(string.format("git clone --recursive %s %s", module.url, module_src))
-
-    local checkout_cmd = string.format([[
-      cd %s &&
-      LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
-      [ -z "$LATEST_TAG" ] && LATEST_TAG=$(git tag -l | sort -V | tail -n 1)
-      if [ -n "$LATEST_TAG" ]; then
-        git checkout "$LATEST_TAG" 2>/dev/null
-        git submodule update --init --recursive
-      fi
-    ]], module_src)
-    utils.run(checkout_cmd)
-
-    module_version = utils.get_pkg_version(module_src)
-    tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
-    utils.run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", config.RPMBUILD_DIR, tarball_name, module_src))
-  else
-    utils.run(string.format("mkdir -p %s", module_src))
-    module_version = "3.3.0"
-    tarball_name = "CascadiaMono.zip"
-    print(string.format("%s--> Download diretto di %s in SOURCES...%s", C.yellow, module.url, C.reset))
-    utils.run(string.format("curl -L -fLo %s/SOURCES/%s %s", config.RPMBUILD_DIR, tarball_name, module.url))
-  end
-
-  utils.set_compiled_version(module.dir, module_version)
-  print(string.format("%s--> Calculated Version: %s%s", C.green, module_version, C.reset))
-
-  local deps_hash = utils.get_deps_hash(module.core_deps)
-
-  local search_pattern = string.format("%s-%s-1.*.rpm", rpm_name, module_version)
-  local cmd = string.format("ls %s/%s 2>/dev/null | grep '_%s' | head -n 1", config.RESULTS_DIR, search_pattern, deps_hash)
-  local h_check = io.popen(cmd)
-  local existing_rpm = ""
-
-  if h_check then
-      local content = h_check:read("*a")
-      h_check:close()
-      if content then existing_rpm = content:gsub("%s+", "") end
-  end
-
-  if existing_rpm ~= "" then
-    print(string.format("\n%s[=] MATCH: Existing RPM with the same version and identical dependencies%s", C.green, C.reset))
-    print(string.format("%s--> Skip compilation and install: %s%s", C.green, existing_rpm, C.reset))
-    utils.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
-  else
-    print(string.format("\n%s[+] No valid RPM found for %s (version or dependencies changed).%s", C.yellow, rpm_name, C.reset))
-
-    local build_time = os.date("%Y%m%d%H%M")
-    local rpm_release = string.format("1.%s_%s", build_time, deps_hash)
-    print(string.format("%s--> Generating new build Release: %s%s", C.yellow, rpm_release, C.reset))
-
-    tarball_name = ""
-    if module.dir == "caskaydia-mono-nerd-fonts" then
-      tarball_name = "CascadiaMono.zip"
-    else
-      tarball_name = string.format("%s-%s.tar.gz", rpm_name, module_version)
-      utils.run(string.format("tar --exclude='.git' -czf %s/SOURCES/%s -C %s .", config.RPMBUILD_DIR, tarball_name, module_src))
-    end
-
-    local target_spec_file = config.RPMBUILD_DIR .. "/SPECS/" .. rpm_name .. ".spec"
-    local custom_spec_path = config.SPECS_DIR .. "/" .. rpm_name .. ".spec"
-
-    -- Gestione spec personalizzato obbligatorio
-    local custom_spec_file = io.open(custom_spec_path, "r")
-    if custom_spec_file then
-      custom_spec_file:close()
-      print(string.format("%s--> Found .spec file: %s%s", C.magenta, custom_spec_path, C.reset))
-      utils.run(string.format("cp -f %s %s", custom_spec_path, target_spec_file))
-    else
-      print(string.format("\n%s[!] FATAL ERROR: Missing .spec file for %s in '%s/'%s", C.red, rpm_name, config.SPECS_DIR, C.reset))
-      os.exit(1)
-    end
-
-    print(string.format("%s--> RPM compilation in progress...%s", C.yellow, C.reset))
-    utils.run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag, module_version, rpm_release, tarball_name, target_spec_file))
-
-    utils.run(string.format("rm -f %s/%s-*.rpm", config.RESULTS_DIR, rpm_name))
-    utils.run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", config.RPMBUILD_DIR, rpm_name, config.RESULTS_DIR))
-
-    print(string.format("%s--> System package installation test...%s", C.yellow, C.reset))
-    utils.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
-  end
+  -- Compila il modulo corrente tramite la funzione centralizzata
+  utils.build_module(module, rpmbuild_jobs_flag, changelog_date)
 end
 
 print(string.format("\n%s============================================================%s", C.green, C.reset))
