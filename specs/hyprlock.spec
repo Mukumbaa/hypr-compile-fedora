@@ -48,21 +48,23 @@ Provides:       bundled(sdbus-cpp) = %{sdbus_version}
 # tar -xf /tmp/sdbus.tar.gz -C subprojects/sdbus-cpp --strip=1
 # rm -f /tmp/sdbus.tar.gz
 
+# %build
+# pushd subprojects/sdbus-cpp
+# %cmake \
+#     -DCMAKE_INSTALL_PREFIX=%{_builddir}/sdbus \
+#     -DCMAKE_BUILD_TYPE=Release \
+#     -DSDBUSCPP_BUILD_DOCS=OFF \
+#     -DBUILD_SHARED_LIBS=OFF
+# %cmake_build
+# cmake --install %{_vpath_builddir}
+# popd
+# export PKG_CONFIG_PATH=%{_builddir}/sdbus/%{_lib}/pkgconfig
+#
+# %cmake -DCMAKE_BUILD_TYPE=Release
+# %cmake_build
 %build
-pushd subprojects/sdbus-cpp
-%cmake \
-    -DCMAKE_INSTALL_PREFIX=%{_builddir}/sdbus \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DSDBUSCPP_BUILD_DOCS=OFF \
-    -DBUILD_SHARED_LIBS=OFF
-%cmake_build
-cmake --install %{_vpath_builddir}
-popd
-export PKG_CONFIG_PATH=%{_builddir}/sdbus/%{_lib}/pkgconfig
-
 %cmake -DCMAKE_BUILD_TYPE=Release
 %cmake_build
-
 %install
 %cmake_install
 [ -f %{buildroot}%{_datadir}/hypr/%{name}.conf ] && rm %{buildroot}%{_datadir}/hypr/%{name}.conf || true
