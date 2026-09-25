@@ -21,13 +21,36 @@ function M.run(cmd)
   end
 end
 
+-- function M.resolve_dep_version(dep_dir)
+--   if compiled_versions[dep_dir] then
+--     return compiled_versions[dep_dir]
+--   end
+--
+--   local rpm_path = ""
+--   local cmd = string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, dep_dir:lower())
+--   local h = io.popen(cmd)
+--
+--   if h then
+--       local content = h:read("*a")
+--       h:close()
+--       if content then rpm_path = content:gsub("%s+", "") end
+--   end
+--
+--   if rpm_path ~= "" then
+--     local ver = rpm_path:match(dep_dir:lower() .. "%-(%d+[%d%.]*)%-")
+--     if ver then return ver end
+--   end
+--
+--   return "0"
+-- end
 function M.resolve_dep_version(dep_dir)
   if compiled_versions[dep_dir] then
     return compiled_versions[dep_dir]
   end
 
   local rpm_path = ""
-  local cmd = string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, dep_dir:lower())
+  -- [0-9] intercetta solo la versione: isola hyprland ed esclude hyprland-guiutils, hyprland-devel, ecc.
+  local cmd = string.format("ls %s/%s-[0-9]*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, dep_dir:lower())
   local h = io.popen(cmd)
 
   if h then
@@ -43,6 +66,7 @@ function M.resolve_dep_version(dep_dir)
 
   return "0"
 end
+
 
 function M.get_deps_hash(deps_list)
   if not deps_list or #deps_list == 0 then return "base" end
@@ -162,7 +186,8 @@ function M.build_module(module, rpmbuild_jobs_flag, changelog_date)
   if existing_rpm ~= "" then
     print(string.format("\n%s[=] MATCH: Existing RPM with the same version and identical dependencies%s", C.green, C.reset))
     print(string.format("%s--> Skip compilation and install: %s%s", C.green, existing_rpm, C.reset))
-    M.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
+    -- M.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
+    M.run(string.format("find %s -maxdepth 1 -name '%s-[0-9]*.rpm' -exec dnf install -y --allowerasing {} +", config.RESULTS_DIR, rpm_name))
   else
     print(string.format("\n%s[+] No valid RPM found for %s (version or dependencies changed).%s", C.yellow, rpm_name, C.reset))
 
@@ -188,16 +213,43 @@ function M.build_module(module, rpmbuild_jobs_flag, changelog_date)
       os.exit(1)
     end
 
+--     print(string.format("%s--> RPM compilation in progress...%s", C.yellow, C.reset))
+--     M.run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag or "", module_version, rpm_release, tarball_name, target_spec_file))
+--
+--     M.run(string.format("rm -f %s/%s-*.rpm", config.RESULTS_DIR, rpm_name))
+--     M.run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", config.RPMBUILD_DIR, rpm_name, config.RESULTS_DIR))
+--
+--     print(string.format("%s--> System package installation test...%s", C.yellow, C.reset))
+--     M.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
+--   end
+-- end
     print(string.format("%s--> RPM compilation in progress...%s", C.yellow, C.reset))
+
+    -- 1. Svuota la cartella RPMS temporanea prima della compilazione
+    M.run(string.format("rm -rf %s/RPMS/*", config.RPMBUILD_DIR))
+
+    -- 2. Compila il pacchetto
     M.run(string.format("rpmbuild %s --define 'module_version %s' --define 'module_release %s' --define 'source_tarball %s' -bb --nodeps %s", rpmbuild_jobs_flag or "", module_version, rpm_release, tarball_name, target_spec_file))
 
-    M.run(string.format("rm -f %s/%s-*.rpm", config.RESULTS_DIR, rpm_name))
-    M.run(string.format("find %s/RPMS -name '%s-*.rpm' -exec cp -f {} %s/ \\;", config.RPMBUILD_DIR, rpm_name, config.RESULTS_DIR))
+    -- 3. Rimuove in /output SOLO le versioni precedenti di questo modulo e dei suoi subpacchetti, interrogando gli RPM appena generati
+    M.run(string.format([[
+      for rpm in $(find %s/RPMS -name "*.rpm"); do
+        pkg_name=$(rpm -qp --qf '%%{NAME}' "$rpm")
+        rm -f %s/${pkg_name}-[0-9]*.rpm
+      done
+    ]], config.RPMBUILD_DIR, config.RESULTS_DIR))
 
+    -- 4. Copia tutti i pacchetti generati (principali e sub-package) in /output
+    M.run(string.format("find %s/RPMS -name '*.rpm' -exec cp -f {} %s/ \\;", config.RPMBUILD_DIR, config.RESULTS_DIR))
+
+    -- 5. Testa l'installazione installando ESCLUSIVAMENTE gli RPM appena prodotti
     print(string.format("%s--> System package installation test...%s", C.yellow, C.reset))
-    M.run(string.format("dnf install -y --allowerasing %s/%s*.rpm", config.RESULTS_DIR, rpm_name))
+    M.run(string.format("find %s/RPMS -name '*.rpm' -exec dnf install -y --allowerasing {} +", config.RPMBUILD_DIR))
   end
 end
+
+
+
 
 -- Gestione ricorsiva delle dipendenze con compilazione automatica al volo se mancanti
 function M.install_pkg_and_deps(dir_name, visited, rpmbuild_jobs_flag, changelog_date)
@@ -215,10 +267,33 @@ function M.install_pkg_and_deps(dir_name, visited, rpmbuild_jobs_flag, changelog
     end
   end
 
+  -- local rpm_name = dir_name:lower()
+  --
+  -- -- 2. Verifica se l'RPM della dipendenza esiste già in /output
+  -- local cmd = string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, rpm_name)
+  -- local h = io.popen(cmd)
+  -- local rpm_exists = false
+  -- if h then
+  --   local content = h:read("*a")
+  --   h:close()
+  --   if content and content:gsub("%s+", "") ~= "" then
+  --     rpm_exists = true
+  --   end
+  -- end
+  --
+  -- -- 3. Se esiste lo installa, altrimenti lo compila al volo!
+  -- if rpm_exists then
+  --   print(string.format("\n%s--> 📦 [Dep-Tree] Installing existing dependency: %s%s", C.blue, dir_name, C.reset))
+  --   M.run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
+  --   M.run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
+  -- else
+  --   print(string.format("\n%s--> ⚠️ [Dep-Tree] Dependency package '%s' not found. Compiling on-the-fly...%s", C.yellow, dir_name, C.reset))
+  --   M.build_module(mod, rpmbuild_jobs_flag, changelog_date)
+  -- end
   local rpm_name = dir_name:lower()
 
-  -- 2. Verifica se l'RPM della dipendenza esiste già in /output
-  local cmd = string.format("ls %s/%s-*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, rpm_name)
+  -- 2. Cerca SOLO il file la cui versione inizia con un numero (escludendo moduli con prefisso comune)
+  local cmd = string.format("ls %s/%s-[0-9]*.rpm 2>/dev/null | head -n 1", config.RESULTS_DIR, rpm_name)
   local h = io.popen(cmd)
   local rpm_exists = false
   if h then
@@ -229,11 +304,11 @@ function M.install_pkg_and_deps(dir_name, visited, rpmbuild_jobs_flag, changelog
     end
   end
 
-  -- 3. Se esiste lo installa, altrimenti lo compila al volo!
+  -- 3. Se esiste installa pacchetto e relativo devel in modo mirato
   if rpm_exists then
     print(string.format("\n%s--> 📦 [Dep-Tree] Installing existing dependency: %s%s", C.blue, dir_name, C.reset))
-    M.run(string.format("find %s -maxdepth 1 -name '%s-*.rpm' ! -name '*-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
-    M.run(string.format("find %s -maxdepth 1 -name '%s-devel-*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
+    M.run(string.format("find %s -maxdepth 1 -name '%s-[0-9]*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
+    M.run(string.format("find %s -maxdepth 1 -name '%s-devel-[0-9]*.rpm' -exec dnf install -y --allowerasing {} + 2>/dev/null || true", config.RESULTS_DIR, rpm_name))
   else
     print(string.format("\n%s--> ⚠️ [Dep-Tree] Dependency package '%s' not found. Compiling on-the-fly...%s", C.yellow, dir_name, C.reset))
     M.build_module(mod, rpmbuild_jobs_flag, changelog_date)
