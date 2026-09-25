@@ -79,7 +79,7 @@ cp /usr/share/pkgconfig/lua55.pc /usr/share/pkgconfig/lua5.5.pc 2>/dev/null || t
     -DCMAKE_BUILD_TYPE=Release \
     -DNO_TESTS=TRUE \
     -DBUILD_TESTING=FALSE \
-    -Dglaze_DIR=%{_libdir}/cmake/glaze
+    -Dglaze_SOURCE_DIR=/usr/include/glaze
 %cmake_build
 
 %install

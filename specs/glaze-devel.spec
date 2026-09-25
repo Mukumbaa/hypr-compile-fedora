@@ -29,7 +29,7 @@ Development files for %{name}.
 
 %build
 %cmake \
-    -Dglaze_INSTALL_CMAKEDIR=%{_libdir}/cmake \
+    -Dglaze_INSTALL_CMAKEDIR=%{_libdir}/cmake/glaze \
     -Dglaze_DISABLE_SIMD_WHEN_SUPPORTED:BOOL=ON \
     -Dglaze_DEVELOPER_MODE:BOOL=OFF \
     -Dglaze_ENABLE_FUZZING:BOOL=OFF
