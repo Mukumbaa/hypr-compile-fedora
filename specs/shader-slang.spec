@@ -47,10 +47,17 @@ Development headers and CMake modules for integrating Slang into C/C++ applicati
 %prep
 %autosetup -c -p1
 
+# Inietta /usr/include/glslang nel target slang-glslang per risolvere gli include di Fedora
+echo 'target_include_directories(slang-glslang PRIVATE %{_includedir}/glslang)' >> source/slang-glslang/CMakeLists.txt
+
 %build
+export CXXFLAGS="%{optflags} -I%{_includedir}/glslang"
+export CFLAGS="%{optflags} -I%{_includedir}/glslang"
+
 %cmake \
     -GNinja \
     -DCMAKE_INSTALL_LIBDIR=%{_lib} \
+    -DCMAKE_CXX_FLAGS="%{build_cxxflags} -I%{_includedir}/glslang" \
     -DSLANG_VERSION_NUMERIC=%{version} \
     -DSLANG_VERSION_FULL=%{version} \
     -DSLANG_ENABLE_OPTIX=OFF \
