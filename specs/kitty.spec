@@ -14,6 +14,8 @@ BuildRequires:  libXcursor-devel libXi-devel libXinerama-devel libxkbcommon-x11-
 BuildRequires:  libXrandr-devel zlib-devel openssl-devel xxhash-devel
 BuildRequires:  python3-sphinx python3-sphinx-design python3-sphinx-copybutton
 BuildRequires:  python3-sphinx-inline-tabs python3-sphinxext-opengraph
+BuildRequires:  shader-slang
+
 
 Requires:       python3%{?_isa}
 Requires:       hicolor-icon-theme
@@ -74,18 +76,10 @@ find -type f -name "*.py" -exec sed -e 's|/usr/bin/env python3|%{python3}|g' \
                                     -i "{}" \;
 
 %build
-# Scarica slangc per la compilazione degli shader se non presente nel container
-if [ ! -f "/tmp/slang/bin/slangc" ]; then
-  mkdir -p /tmp/slang
-  curl -L -o /tmp/slang.tar.gz https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-linux-x86_64-glibc-2.27.tar.gz
-  tar -xf /tmp/slang.tar.gz -C /tmp/slang
-fi
-
-export PATH="/tmp/slang/bin:$PATH"
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# 1. Compilazione pacchetto principale Kitty
+# 1. Compilazione pacchetto principale Kitty (slangc viene trovato automaticamente in /usr/bin)
 %{python3} setup.py linux-package \
     --libdir-name=%{_lib} \
     --update-check-interval=0 \
