@@ -64,11 +64,11 @@ Wayland and X11.
 %install
 %cmake_install
 
-# Rimuove i file di librerie e header vendored non necessari nel pacchetto finale
-rm -rf %{buildroot}%{_includedir}/{cpptrace,ctrace,dwarf.h,libdwarf.h,zstd.h,zdict.h,zstd_errors.h} 2>/dev/null || true
-rm -rf %{buildroot}%{_libdir}/{libcpptrace.a,libdwarf.a,libzstd.a} 2>/dev/null || true
+# Rimuove in modo robusto tutte le librerie statiche e file di sviluppo terze parti vendored
+rm -f %{buildroot}%{_libdir}/*.a
+rm -rf %{buildroot}%{_includedir}/*
 rm -rf %{buildroot}%{_libdir}/cmake/{cpptrace,libdwarf,zstd} 2>/dev/null || true
-rm -rf %{buildroot}%{_libdir}/pkgconfig/{libdwarf.pc,libzstd.pc} 2>/dev/null || true
+rm -rf %{buildroot}%{_libdir}/pkgconfig/{libdwarf,libzstd}*.pc 2>/dev/null || true
 rm -rf %{buildroot}%{_datadir}/cpptrace 2>/dev/null || true
 
 %files

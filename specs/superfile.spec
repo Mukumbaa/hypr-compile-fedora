@@ -26,7 +26,7 @@ BuildRequires:  git
 
 %build
 # Compilazione tramite Go
-go build -o %{binary_name}
+go build -buildmode=pie -ldflags="-s -w" -o %{binary_name}
 
 %install
 install -p -D %{binary_name} %{buildroot}%{_bindir}/%{binary_name}
