@@ -34,6 +34,7 @@ BuildRequires:  pkgconfig(wayland-client)
 BuildRequires:  pkgconfig(wayland-egl)
 BuildRequires:  pkgconfig(wayland-protocols)
 BuildRequires:  pkgconfig(xkbcommon)
+BuildRequires:  pkgconfig(sdbus-cpp-devel)
 
 Provides:       bundled(sdbus-cpp) = %{sdbus_version}
 
@@ -42,10 +43,10 @@ Provides:       bundled(sdbus-cpp) = %{sdbus_version}
 
 %prep
 %autosetup -c -p1
-mkdir -p subprojects/sdbus-cpp
-curl -L https://github.com/Kistler-Group/sdbus-cpp/archive/v%{sdbus_version}/sdbus-%{sdbus_version}.tar.gz -o /tmp/sdbus.tar.gz
-tar -xf /tmp/sdbus.tar.gz -C subprojects/sdbus-cpp --strip=1
-rm -f /tmp/sdbus.tar.gz
+# mkdir -p subprojects/sdbus-cpp
+# curl -L https://github.com/Kistler-Group/sdbus-cpp/archive/v%{sdbus_version}/sdbus-%{sdbus_version}.tar.gz -o /tmp/sdbus.tar.gz
+# tar -xf /tmp/sdbus.tar.gz -C subprojects/sdbus-cpp --strip=1
+# rm -f /tmp/sdbus.tar.gz
 
 %build
 pushd subprojects/sdbus-cpp
