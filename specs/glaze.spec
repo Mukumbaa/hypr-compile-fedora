@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           glaze
-Version:        %{?module_version}%{!?module_version:8.4.0}
+Version:        7.2.0
 Release:        %{?module_release}%{!?module_release:1}%{?dist}
 Summary:        Extremely fast, in memory, JSON and interface library
 
