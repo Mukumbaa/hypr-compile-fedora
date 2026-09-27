@@ -122,7 +122,7 @@ function M.build_module(module, rpmbuild_jobs_flag, changelog_date)
   changelog_date = changelog_date or os.date("%a %b %d %Y")
   local module_src = config.WORK_DIR .. "/" .. module.dir
   local rpm_name = module.dir:lower()
-  local specific_reqs = module.build_reqs or ""
+  local specific_reqs = table.concat(module.build_reqs, " ") or ""
 
   if specific_reqs ~= "" then
     print(string.format("%s--> 📥 Installation build requirements for %s...%s", C.yellow, module.dir, C.reset))
